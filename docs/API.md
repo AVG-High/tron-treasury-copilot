@@ -6,6 +6,7 @@ No service stores private keys, signs transactions or broadcasts transactions.
 
 | Method and path                  | Input                                  | Response                                                     |
 | -------------------------------- | -------------------------------------- | ------------------------------------------------------------ |
+| `GET/HEAD /healthz`              | None                                   | `{ ok: true }`; liveness only, no provider call              |
 | `GET /api/health`                | None                                   | `ok`, `app`, `version`, `aiConfigured`, `network`, `signing` |
 | `GET /api/markets?mode=live`     | `live` (default) or explicit `demo`    | `MarketSnapshot`                                             |
 | `POST /api/intent`               | `{ text }`, maximum 6,000 characters   | `ParseResult`                                                |
@@ -98,3 +99,9 @@ There is no server-side history database. Plans and transaction tracking use the
 browser's project-specific local storage; it is not a secure multi-user account system.
 Request bodies, wallet addresses, balances, upstream error bodies and API keys are not
 logged. Demo and live data remain explicitly distinguished.
+
+`/healthz` is separate from API rate limiting. With an explicit public HTTPS origin
+in production, Railway's `healthcheck.railway.app` Host is accepted only on the exact
+GET/HEAD `/healthz` path, without a query. It grants no access to any other endpoint.
+Client-side monitoring only reads the existing markets/wallet APIs; it never schedules
+server transactions or turns observations into a complete performance ledger.

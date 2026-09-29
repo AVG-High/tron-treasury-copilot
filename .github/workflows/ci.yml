@@ -1,0 +1,85 @@
+name: Treasury checks
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: treasury-checks-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CI: "true"
+      HOST: 127.0.0.1
+      PORT: "4187"
+      PUBLIC_ORIGIN: ""
+      OPENAI_API_KEY: ""
+      OPENAI_MODEL: ""
+      TRONGRID_API_KEY: ""
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          cache: npm
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: npm run smoke
+      - name: Build isolated production image
+        run: docker build --tag tron-treasury-copilot:ci .
+      - name: Check production startup and Railway probe
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker run --detach --name treasury-ci \
+            --publish 127.0.0.1:4188:4187 \
+            --env PUBLIC_ORIGIN=https://treasury.example \
+            tron-treasury-copilot:ci
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent --show-error \
+              --header 'Host: healthcheck.railway.app' \
+              http://127.0.0.1:4188/healthz; then
+              break
+            fi
+            sleep 1
+          done
+          curl --fail --silent --show-error \
+            --header 'Host: healthcheck.railway.app' \
+            http://127.0.0.1:4188/healthz
+          curl --fail --silent --show-error \
+            --header 'Host: treasury.example' \
+            http://127.0.0.1:4188/api/health
+          curl --fail --silent --show-error --output /dev/null \
+            --header 'Host: treasury.example' \
+            http://127.0.0.1:4188/
+          blocked_status=$(curl --silent --output /dev/null --write-out '%{http_code}' \
+            --header 'Host: healthcheck.railway.app' \
+            http://127.0.0.1:4188/api/health)
+          test "$blocked_status" = 403
+      - name: Stop only this job's container
+        if: always()
+        run: docker rm --force treasury-ci || true
+      - name: Retain test diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: treasury-test-diagnostics
+          path: |
+            test-results/
+            playwright-report/
+          if-no-files-found: ignore
+          retention-days: 7

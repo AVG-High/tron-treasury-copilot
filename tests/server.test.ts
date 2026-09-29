@@ -51,9 +51,10 @@ async function serve(options: AppOptions = {}) {
     route: string,
     body?: unknown,
     headers: Record<string, string> = {},
+    method?: "GET" | "HEAD" | "POST",
   ) => {
     const options = {
-      method: body === undefined ? "GET" : "POST",
+      method: method ?? (body === undefined ? "GET" : "POST"),
       headers: {
         Origin: origin,
         ...(body === undefined ? {} : { "Content-Type": "application/json" }),
@@ -127,6 +128,69 @@ const preview: TransactionPreview = {
 };
 
 describe("API boundary", () => {
+  it("keeps Railway liveness available under exhausted API limits without exposing application metadata", async () => {
+    const publicOrigin = "https://treasury.example";
+    const live = vi.fn();
+    const parser = vi.fn();
+    const request = await serve({
+      production: true,
+      allowedOrigins: [publicOrigin],
+      rateLimit: 1,
+      services: { getLiveSnapshot: live, parseIntent: parser },
+    });
+    const normalHeaders = { Host: "treasury.example", Origin: publicOrigin };
+    expect(
+      (await request("/api/health", undefined, normalHeaders)).status,
+    ).toBe(200);
+    expect(
+      (await request("/api/health", undefined, normalHeaders)).status,
+    ).toBe(429);
+    const probeHeaders = { Host: "healthcheck.railway.app", Origin: "" };
+    const response = await request("/healthz", undefined, probeHeaders);
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ ok: true });
+    const head = await request("/healthz", undefined, probeHeaders, "HEAD");
+    expect(head.status).toBe(200);
+    expect(await head.text()).toBe("");
+    expect(live).not.toHaveBeenCalled();
+    expect(parser).not.toHaveBeenCalled();
+  });
+
+  it("limits the Railway Host exception to exact production liveness GET or HEAD", async () => {
+    const headers = {
+      Host: "healthcheck.railway.app",
+      Origin: "https://treasury.example",
+    };
+    const request = await serve({
+      production: true,
+      allowedOrigins: ["https://treasury.example"],
+    });
+    for (const route of [
+      "/api/health",
+      "/api/markets?mode=demo",
+      "/",
+      "/healthz/",
+      "/HEALTHZ",
+      "/healthz?extra=1",
+    ]) {
+      expect((await request(route, undefined, headers)).status).toBe(403);
+    }
+    expect((await request("/healthz", {}, headers)).status).toBe(403);
+    expect(
+      (await request("/healthz", undefined, { Host: "attacker.invalid" }))
+        .status,
+    ).toBe(403);
+    const local = await serve({ production: true });
+    expect((await local("/healthz", undefined, headers)).status).toBe(403);
+    const development = await serve({
+      production: false,
+      allowedOrigins: ["https://treasury.example"],
+    });
+    expect((await development("/healthz", undefined, headers)).status).toBe(
+      403,
+    );
+  });
+
   it("health exposes configuration only, not secrets", async () => {
     vi.stubEnv("OPENAI_API_KEY", "secret-test-value");
     const request = await serve({ aiConfigured: false });
@@ -245,14 +309,12 @@ describe("API boundary", () => {
   });
 
   it("enforces an intent request limit and a JSON size limit", async () => {
-    const parser = vi
-      .fn()
-      .mockResolvedValue({
-        source: "manual",
-        intent: {},
-        questions: [],
-        message: "manual",
-      });
+    const parser = vi.fn().mockResolvedValue({
+      source: "manual",
+      intent: {},
+      questions: [],
+      message: "manual",
+    });
     const request = await serve({
       intentRateLimit: 1,
       services: { parseIntent: parser },
@@ -266,14 +328,12 @@ describe("API boundary", () => {
   });
 
   it("does not bypass the paid intent limit with route casing, slashes or forwarded IPs", async () => {
-    const parser = vi
-      .fn()
-      .mockResolvedValue({
-        source: "manual",
-        intent: {},
-        questions: [],
-        message: "manual",
-      });
+    const parser = vi.fn().mockResolvedValue({
+      source: "manual",
+      intent: {},
+      questions: [],
+      message: "manual",
+    });
     const request = await serve({
       intentRateLimit: 1,
       services: { parseIntent: parser },
@@ -532,14 +592,12 @@ describe("natural-language intent extraction", () => {
   });
 
   it("keeps unstated conditions missing and asks about the residual investment horizon", async () => {
-    const transport = vi
-      .fn()
-      .mockResolvedValue(
-        aiResponse({
-          ...extracted,
-          expenses: [{ label: "Payment", amountUSDT: "3000", dueInDays: 7 }],
-        }),
-      );
+    const transport = vi.fn().mockResolvedValue(
+      aiResponse({
+        ...extracted,
+        expenses: [{ label: "Payment", amountUSDT: "3000", dueInDays: 7 }],
+      }),
+    );
     const result = await parseIntent(
       "I have 10000 USDT and need 3000 USDT in seven days. No leverage.",
       { apiKey: "test", model: "configured-test-model", fetch: transport },

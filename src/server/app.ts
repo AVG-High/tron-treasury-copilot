@@ -119,6 +119,15 @@ export function createApp(options: AppOptions = {}) {
   const intentRateLimit = options.intentRateLimit ?? 6;
   const production =
     options.production ?? process.env.NODE_ENV === "production";
+  const publicDeployment =
+    production &&
+    originList.some((origin) => {
+      const parsed = new URL(origin);
+      return (
+        parsed.protocol === "https:" &&
+        !["127.0.0.1", "localhost", "[::1]"].includes(parsed.hostname)
+      );
+    });
   let liveCache:
     { at: number; promise: ReturnType<typeof getLiveSnapshot> } | undefined;
 
@@ -129,11 +138,23 @@ export function createApp(options: AppOptions = {}) {
     res.setHeader("X-Frame-Options", "DENY");
     res.setHeader("Referrer-Policy", "no-referrer");
     // Reject DNS rebinding and accidental exposure of the local API on arbitrary hosts.
-    if (!hostnames.has(req.hostname)) {
+    // Railway probes this exact liveness path with a platform Host header.
+    // This exception must never authorize wallet, AI, static or transaction routes.
+    const railwayProbe =
+      publicDeployment &&
+      req.hostname === "healthcheck.railway.app" &&
+      ["GET", "HEAD"].includes(req.method) &&
+      req.originalUrl === "/healthz";
+    if (!hostnames.has(req.hostname) && !railwayProbe) {
       res.status(403).json({ error: "허용되지 않은 호스트입니다." });
       return;
     }
     next();
+  });
+  // No RPC, AI, wallet data or general request quota is needed for liveness.
+  app.get("/healthz", (_req, res) => {
+    res.setHeader("Cache-Control", "no-store");
+    res.json({ ok: true });
   });
   app.use("/api", (req, res, next) => {
     res.setHeader("Cache-Control", "no-store");
@@ -173,12 +194,9 @@ export function createApp(options: AppOptions = {}) {
       let window = limits.get(key);
       if (!window || window.reset <= time) {
         if (limits.size >= 10_000 && !window) {
-          res
-            .status(429)
-            .json({
-              error:
-                "서버 요청 한도에 도달했습니다. 잠시 후 다시 시도해 주세요.",
-            });
+          res.status(429).json({
+            error: "서버 요청 한도에 도달했습니다. 잠시 후 다시 시도해 주세요.",
+          });
           return;
         }
         window = { count: 0, reset: time + 60_000 };
@@ -252,11 +270,9 @@ export function createApp(options: AppOptions = {}) {
     let minimumBalanceAfterSupply: Decimal | undefined;
     if (checksPlan) {
       if (!planning) {
-        res
-          .status(400)
-          .json({
-            error: "예치에는 확인한 실시간 계획과 비용 가정이 필요합니다.",
-          });
+        res.status(400).json({
+          error: "예치에는 확인한 실시간 계획과 비용 가정이 필요합니다.",
+        });
         return;
       }
       // Fresh execution checks do not reuse the 30-second dashboard cache.
@@ -282,12 +298,10 @@ export function createApp(options: AppOptions = {}) {
         !allocation ||
         amount.gt(allocation.amountUSDT)
       ) {
-        res
-          .status(409)
-          .json({
-            error:
-              "현재 데이터에서 선택한 계획의 예치 가능 금액을 확인하지 못했습니다. 계획을 다시 계산해 주세요.",
-          });
+        res.status(409).json({
+          error:
+            "현재 데이터에서 선택한 계획의 예치 가능 금액을 확인하지 못했습니다. 계획을 다시 계산해 주세요.",
+        });
         return;
       }
       minimumBalanceAfterSupply = new Decimal(result.reserveUSDT).plus(
@@ -297,12 +311,10 @@ export function createApp(options: AppOptions = {}) {
         new Decimal(planning.intent.capitalUSDT).gt(walletBalance) ||
         walletBalance.minus(amount).lt(minimumBalanceAfterSupply)
       ) {
-        res
-          .status(409)
-          .json({
-            error:
-              "지갑 잔액이 계획 자금보다 작거나 예치 후 예정 지출·비상금·비용 여유가 부족합니다. 금액을 수정해 주세요.",
-          });
+        res.status(409).json({
+          error:
+            "지갑 잔액이 계획 자금보다 작거나 예치 후 예정 지출·비상금·비용 여유가 부족합니다. 금액을 수정해 주세요.",
+        });
         return;
       }
     }
@@ -316,12 +328,10 @@ export function createApp(options: AppOptions = {}) {
         new Decimal(planning.intent.capitalUSDT).gt(balance) ||
         balance.minus(transaction.amount).lt(minimumBalanceAfterSupply)
       ) {
-        res
-          .status(409)
-          .json({
-            error:
-              "거래 준비 중 지갑 잔액이 바뀌어 예약 자금을 보호할 수 없습니다. 다시 계산해 주세요.",
-          });
+        res.status(409).json({
+          error:
+            "거래 준비 중 지갑 잔액이 바뀌어 예약 자금을 보호할 수 없습니다. 다시 계산해 주세요.",
+        });
         return;
       }
     }
@@ -387,12 +397,10 @@ export function createApp(options: AppOptions = {}) {
       return;
     }
     // Never send exception stacks, headers, upstream bodies, API keys or wallet records to clients/logs.
-    res
-      .status(502)
-      .json({
-        error:
-          "외부 데이터 또는 거래 준비를 확인하지 못했습니다. 실시간 데이터 대신 데모를 적용하지 않았습니다. 잠시 후 다시 시도해 주세요.",
-      });
+    res.status(502).json({
+      error:
+        "외부 데이터 또는 거래 준비를 확인하지 못했습니다. 실시간 데이터 대신 데모를 적용하지 않았습니다. 잠시 후 다시 시도해 주세요.",
+    });
   };
   app.use(errors);
   return app;
