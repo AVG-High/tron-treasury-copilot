@@ -17,7 +17,11 @@ test("mocked wallet submission preserves exact preview and links a unique saved 
     txid = createHash("sha256")
       .update(Buffer.from(rawHex, "hex"))
       .digest("hex");
-  const fixture = planTreasury(defaultIntent, demoSnapshot, defaultCosts);
+  const fixture = planTreasury(
+    defaultIntent,
+    structuredClone(demoSnapshot),
+    defaultCosts,
+  );
   fixture.snapshot.mode = "live";
   const mockWallet = {
     address: owner,

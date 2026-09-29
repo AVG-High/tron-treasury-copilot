@@ -41,7 +41,8 @@ import type {
 } from "../domain/types";
 import { api } from "./api";
 import { ReviewSimulation } from "./ReviewSimulation";
-import { intentSchema, costsSchema } from "../domain/schema";
+import { MonitoringPanel } from "./MonitoringPanel";
+import { restorePlanConditions } from "./restore-plan";
 import { assertWallet, connectWallet, signAndBroadcast } from "./wallet";
 import { exportJson, readHistory, toSavedPlan, writeHistory } from "./history";
 
@@ -1366,8 +1367,37 @@ export default function App() {
             </section>
           )}
 
+          {result && plan && confirmed && mode === "live" && !stressNote && (
+            <div hidden={tab !== "review"}>
+              <MonitoringPanel
+                key={`${result.createdAt}:${plan.id}:${wallet?.address ?? "markets"}`}
+                result={result}
+                selectedPlanId={plan.id}
+                wallet={wallet}
+                onWallet={setWallet}
+                onSnapshot={setSnapshot}
+                paused={!!preview || !!busy}
+                onReview={(nextIntent, nextCosts) => {
+                  intentDirty();
+                  setIntent(nextIntent);
+                  setCosts(nextCosts);
+                  setResult(null);
+                  setTab("plan");
+                  setNotice(
+                    "남은 기간의 조건을 불러왔습니다. 실제 가용 자금과 이미 지급한 지출을 확인하고 다시 계산해 주세요.",
+                  );
+                }}
+              />
+            </div>
+          )}
           {tab === "review" && (
             <>
+              {(!result || !confirmed || mode !== "live" || !!stressNote) && (
+                <p className="inline-warning">
+                  계획 변화 관측은 실시간 모드에서 조건을 확인하고 기본 계획을
+                  계산한 뒤 사용할 수 있습니다.
+                </p>
+              )}
               {result && plan && (
                 <ReviewSimulation result={result} planId={plan.id} />
               )}
@@ -1415,7 +1445,7 @@ export default function App() {
                           <div>
                             <strong>
                               {p.marketId === "justlend-usdd"
-                                ? "JustLend USDD · 기존 등록 자산"
+                                ? "JustLend USDD · 예치 자산"
                                 : labels[p.marketId]}
                             </strong>
                             <small>
@@ -1515,24 +1545,23 @@ export default function App() {
                       <div>
                         <span>예상 순수익</span>
                         <strong>{money(p.expectedNetUSDT)} USDT</strong>
-                        <small>실제 수익: 관측 대기</small>
+                        <small>실제 순수익: 전체 입출금 원장 필요</small>
                         <button
                           className="text-button"
                           onClick={() => {
                             try {
-                              const stored = p.plan as {
-                                intent: unknown;
-                                costs: unknown;
-                              };
+                              const restored = restorePlanConditions(p.plan);
                               intentDirty();
-                              setIntent(intentSchema.parse(stored.intent));
-                              setCosts(costsSchema.parse(stored.costs));
+                              setIntent(restored.intent);
+                              setCosts(restored.costs);
                               setMode(p.mode);
                               setConfirmed(false);
                               setResult(null);
                               setTab("plan");
                               setNotice(
-                                "저장한 입력을 불러왔습니다. 현재 데이터로 다시 계산해 주세요.",
+                                restored.requiresNewHorizon
+                                  ? "원래 운용 기간이 끝났습니다. 새 운용 기간과 이미 지급한 지출을 직접 확인한 뒤 다시 계산해 주세요."
+                                  : `원래 계획에서 ${restored.elapsedDays}일 경과한 조건을 불러왔습니다. 실제 가용 자금과 지급 완료 지출을 확인하고 다시 계산해 주세요.`,
                               );
                             } catch {
                               setError(

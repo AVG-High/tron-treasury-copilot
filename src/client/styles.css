@@ -1906,6 +1906,57 @@ footer > span:first-child {
   gap: 9px;
   font-size: 16px;
 }
+.monitoring-panel h2 {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 16px;
+}
+.monitoring-panel > p,
+.monitor-ledger > p {
+  margin: 12px 0;
+}
+.monitor-controls {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 20px;
+  margin: 20px 0;
+  font-size: 12px;
+}
+.monitor-controls label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.monitor-controls select {
+  background: #172114;
+  color: #c6d8b8;
+  border: 1px solid #49613c;
+  border-radius: 4px;
+  padding: 8px;
+}
+.monitor-controls input {
+  accent-color: #afce88;
+}
+.monitor-alert {
+  font-size: 12px;
+  padding: 10px 12px;
+  margin: 8px 0;
+  border-left: 2px solid #6d9555;
+  background: #202d1c;
+}
+.monitor-alert.warning,
+.monitor-alert.critical {
+  border-color: #c29a7c;
+  background: #30281f;
+  color: #e1b996;
+}
+.monitor-ledger {
+  border-top: 1px solid #374630;
+  margin-top: 24px;
+  padding-top: 20px;
+}
 .replay-controls {
   display: grid;
   grid-template-columns: 1fr 1fr;

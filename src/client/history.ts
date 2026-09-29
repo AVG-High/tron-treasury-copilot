@@ -35,7 +35,7 @@ export function readHistory(): {
 } {
   try {
     const raw = localStorage.getItem(KEY);
-    if (!raw) return { plans: [], transactions: [], error: null };
+    if (raw === null) return { plans: [], transactions: [], error: null };
     const parsed = z
       .object({
         version: z.literal(1),
