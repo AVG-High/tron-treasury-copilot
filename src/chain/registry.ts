@@ -4,15 +4,17 @@ export const MAINNET_GENESIS_BLOCK_ID =
   "00000000000000001ebf88508a03865c71d452e25f4d51194196a1d22b6653dc";
 export const REGISTRY = {
   usdt: "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t",
-  usdd: "TCrEVahRbhDFB6uRXEWUg7wkptXvg47GKs",
-  // Official JustLend registry and live API disagree with USDD's own token registry.
-  // Keep this identity separate; a PSM -> JustLend USDD route is disabled.
+  // Current official deployment list, jUSDD.underlying() and PSM.usdd() agree.
+  // Read-only verification and old documentation discrepancy: docs/USDD-VERIFICATION.md.
+  usdd: "TXDk8mbtRbXeYuMNS83CfKPaYYT8XWv9Hz",
   justlendUsddUnderlying: "TXDk8mbtRbXeYuMNS83CfKPaYYT8XWv9Hz",
   jUsdt: "TXJgMdjVX5dKiQaUi9QobwNxtSQaFqccvd",
   jUsdtImplementation: "TLjn59xNM7VEK6VZ3VQ8Y1ipxsdsFka5wZ",
   jUsdd: "TKFRELGGoRgiayhwJTNNLqCNjFoLBh3Mnf",
   comptroller: "TGjYzgCyPobsNS9n6WcbdLVR9dH7mWqFx7",
-  psmCollateral: "TSUYvQ5tdd3DijCD1uGunGLpftHuSZ12sQ",
+  // The collateral API reports the Join adapter, not the callable PSM module.
+  psmUsdtJoin: "TSUYvQ5tdd3DijCD1uGunGLpftHuSZ12sQ",
+  psmUsdt: "TBXW4hS5KYjjbJXDpnrPf4zhkLwrpUjbyz",
 } as const;
 /** SHA256 of bytecode bytes returned by official wallet/getcontract, observed 2026-09-28. */
 export const CODE_FINGERPRINTS = {

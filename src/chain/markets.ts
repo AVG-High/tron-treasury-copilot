@@ -96,7 +96,7 @@ export function parseMarkets(
       );
     if (spec.asset === "USDD")
       warnings.push(
-        `USDD 공식 토큰(${REGISTRY.usdd})과 JustLend 등록 자산(${spec.token})이 다릅니다. 전환·예치 경로를 검증할 때까지 계획에서 제외합니다.`,
+        "USDD 토큰과 JustLend 기초자산의 일치는 확인했습니다. PSM 양방향 한도·현재 상태의 실시간 검증과 왕복 실행 경로가 구현되기 전까지 계획에서 제외합니다.",
       );
     return {
       id: spec.id,
@@ -124,7 +124,7 @@ export function parsePsm(payload: JsonObject, fetchedAt: string): PsmState {
     (item: JsonObject) =>
       item.vaultType === "PSM-USDT-A" &&
       item.chain === "tron" &&
-      item.contractAddress === REGISTRY.psmCollateral,
+      item.contractAddress === REGISTRY.psmUsdtJoin,
   );
   if (!row)
     throw new ChainError(
@@ -144,7 +144,7 @@ export function parsePsm(payload: JsonObject, fetchedAt: string): PsmState {
         label: "USDD 공식 TRON 담보·PSM 데이터",
         url: SOURCE_URLS.usddSnapshot,
         fetchedAt,
-        note: `PSM-USDT-A 조회 성공. 공시 psmFee=${fee ?? "unknown"} (단일 값). 담보 규모는 현재 교환 가능 금액이 아닙니다.`,
+        note: `PSM-USDT-A 담보 Join 조회 성공. 공시 psmFee=${fee ?? "unknown"} (단일 값). Join은 PSM 실행 계약과 다르며 담보 규모는 현재 교환 가능 금액이 아닙니다.`,
       },
       {
         label: "USDD 공식 계약 주소",
@@ -154,7 +154,7 @@ export function parsePsm(payload: JsonObject, fetchedAt: string): PsmState {
     ],
     warnings: [
       "공식 API는 양방향 활성화 상태와 교환 한도를 제공하지 않습니다. 미확인 값은 0으로 대체하지 않으며 전환 경로를 비활성화합니다.",
-      "JustLend와 USDD의 토큰 주소 불일치가 해결되기 전 USDD 왕복 운용을 추천하지 않습니다.",
+      "USDD 토큰 주소 일치는 확인했지만, 현재 PSM 계약 상태·한도와 승인·전환·예치·회수 경로를 앱에서 검증하기 전 USDD 왕복 운용을 추천하지 않습니다.",
     ],
   };
 }

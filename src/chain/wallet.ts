@@ -116,7 +116,7 @@ export async function getWalletState(address: string): Promise<WalletState> {
     );
   } catch {
     warnings.push(
-      "USDD 공식 문서의 토큰 주소에서 잔고를 검증하지 못했습니다. 잔고는 0이 아닌 확인 불가로 표시합니다. USDT 기능은 별도로 검증합니다.",
+      "검증된 USDD 토큰 주소의 현재 잔고를 조회하지 못했습니다. 잔고는 0이 아닌 확인 불가로 표시합니다. USDT 기능은 별도로 검증합니다.",
     );
   }
   const { entered, snapshots, hasBorrow } = await readAccountSnapshots(address);
@@ -161,7 +161,7 @@ export async function getWalletState(address: string): Promise<WalletState> {
     warnings: [
       ...warnings,
       "여러 최신 블록 조회를 사용한 관측값입니다. 서명 직전 다시 검증합니다.",
-      "USDD 지갑 잔고는 USDD 공식 토큰입니다. JustLend USDD는 다른 등록 토큰이며 자동 합산하지 않습니다.",
+      "USDD 지갑 잔고와 JustLend USDD 포지션은 같은 기초자산의 별도 보유 위치입니다. USDT 평가액으로 자동 합산하지 않습니다.",
       ...(hasBorrow
         ? [
             "차입이 있는 계정은 이 MVP에서 회수를 준비할 수 없습니다. 공식 프로토콜 화면에서 담보를 확인하세요.",

@@ -304,65 +304,83 @@ describe("preparation orchestration — simulated RPC only, no signing or broadc
   });
 });
 describe("wallet unknown-data isolation", () => {
-  it("keeps an unverified USDD balance null while independently reading USDT and exact jToken underlying amounts", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn(async (url: string, init?: RequestInit) => {
-        const body = JSON.parse(String(init?.body));
-        let data: unknown;
-        if (url.endsWith("getblockbynum"))
-          data = { blockID: MAINNET_GENESIS_BLOCK_ID };
-        else if (url.endsWith("getnowblock"))
-          data = { block_header: { raw_data: { timestamp: Date.now() } } };
-        else if (url.endsWith("getaccount"))
-          data = { address: TronWeb.address.toHex(owner), balance: 10_000_000 };
-        else if (url.endsWith("getaccountresource"))
-          data = { EnergyLimit: 1000, EnergyUsed: 100, freeNetLimit: 600 };
-        else if (url.endsWith("triggerconstantcontract")) {
-          let output = "";
-          if (body.contract_address === REGISTRY.usdd)
-            return new Response(JSON.stringify({ result: { result: false } }), {
-              status: 200,
-            });
-          if (body.function_selector === "decimals()") output = word(6n);
-          else if (body.function_selector === "balanceOf(address)")
-            output = word(1_000_001n);
-          else if (body.function_selector === "getAssetsIn(address)")
-            output = utils.abi
-              .encodeParams(["address[]"], [[]])
-              .replace(/^0x/, "");
-          else if (body.function_selector === "getAccountSnapshot(address)")
-            output = [
-              0n,
-              body.contract_address === REGISTRY.jUsdt ? 10_000_000_000n : 0n,
-              0n,
-              100_000_000_000_000n,
-            ]
-              .map(word)
-              .join("");
-          else throw new Error(`Unexpected function ${body.function_selector}`);
-          data = { result: { result: true }, constant_result: [output] };
-        } else throw new Error(`Unexpected path ${url}`);
-        return new Response(JSON.stringify(data), { status: 200 });
-      }),
-    );
-    const result = await walletAdapter.getWalletState(owner);
-    expect(result.usdd).toBeNull();
-    expect(result.usdt).toBe("1.000001");
-    expect(result.positions[0].underlyingAmount).toBe("1");
-    expect(result.energyRemaining).toBe(900);
-    expect(result.warnings.some((x) => x.includes("확인 불가"))).toBe(true);
-  });
+  it.each([false, true])(
+    "reads the verified USDD token with 18 decimals, isolating an unavailable balance (USDD available=%s)",
+    async (usddAvailable) => {
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(async (url: string, init?: RequestInit) => {
+          const body = JSON.parse(String(init?.body));
+          let data: unknown;
+          if (url.endsWith("getblockbynum"))
+            data = { blockID: MAINNET_GENESIS_BLOCK_ID };
+          else if (url.endsWith("getnowblock"))
+            data = { block_header: { raw_data: { timestamp: Date.now() } } };
+          else if (url.endsWith("getaccount"))
+            data = {
+              address: TronWeb.address.toHex(owner),
+              balance: 10_000_000,
+            };
+          else if (url.endsWith("getaccountresource"))
+            data = { EnergyLimit: 1000, EnergyUsed: 100, freeNetLimit: 600 };
+          else if (url.endsWith("triggerconstantcontract")) {
+            let output = "";
+            if (body.contract_address === REGISTRY.usdd && !usddAvailable)
+              return new Response(
+                JSON.stringify({ result: { result: false } }),
+                {
+                  status: 200,
+                },
+              );
+            if (body.function_selector === "decimals()")
+              output = word(body.contract_address === REGISTRY.usdd ? 18n : 6n);
+            else if (body.function_selector === "balanceOf(address)")
+              output = word(
+                body.contract_address === REGISTRY.usdd
+                  ? 1_000_000_000_000_000_001n
+                  : 1_000_001n,
+              );
+            else if (body.function_selector === "getAssetsIn(address)")
+              output = utils.abi
+                .encodeParams(["address[]"], [[]])
+                .replace(/^0x/, "");
+            else if (body.function_selector === "getAccountSnapshot(address)")
+              output = [
+                0n,
+                body.contract_address === REGISTRY.jUsdt ? 10_000_000_000n : 0n,
+                0n,
+                100_000_000_000_000n,
+              ]
+                .map(word)
+                .join("");
+            else
+              throw new Error(`Unexpected function ${body.function_selector}`);
+            data = { result: { result: true }, constant_result: [output] };
+          } else throw new Error(`Unexpected path ${url}`);
+          return new Response(JSON.stringify(data), { status: 200 });
+        }),
+      );
+      const result = await walletAdapter.getWalletState(owner);
+      expect(result.usdd).toBe(usddAvailable ? "1.000000000000000001" : null);
+      expect(result.usdt).toBe("1.000001");
+      expect(result.positions[0].underlyingAmount).toBe("1");
+      expect(result.energyRemaining).toBe(900);
+      expect(result.warnings.some((x) => x.includes("확인 불가"))).toBe(
+        !usddAvailable,
+      );
+      expect(result.warnings.some((x) => x.includes("다른 등록 토큰"))).toBe(
+        false,
+      );
+    },
+  );
   it("does not interpret an HTTP200 RPC error as zero balance or pending transaction", async () => {
     vi.stubGlobal(
       "fetch",
-      vi
-        .fn()
-        .mockResolvedValue(
-          new Response(JSON.stringify({ Error: "request rejected" }), {
-            status: 200,
-          }),
-        ),
+      vi.fn().mockResolvedValue(
+        new Response(JSON.stringify({ Error: "request rejected" }), {
+          status: 200,
+        }),
+      ),
     );
     await expect(rpc("wallet/getaccountresource", {})).rejects.toMatchObject({
       code: "RPC_REJECTED",
@@ -370,7 +388,7 @@ describe("wallet unknown-data isolation", () => {
   });
 });
 describe("live-source normalization", () => {
-  it("keeps base rates, token rewards, already-human cash, and USDD identity mismatch separate", () => {
+  it("keeps USDD routing disabled after token identity is verified, separating rates, incentives, and cash", () => {
     const data = parseMarkets(
       marketFixture,
       registry,
@@ -390,6 +408,10 @@ describe("live-source normalization", () => {
     expect(data[1].active).toBe(false);
     expect(data[1].quality).toBe("unavailable");
     expect(data[1].cashUSDT).toBeNull();
+    expect(data[1].tokenAddress).toBe(REGISTRY.usdd);
+    expect(
+      data[1].warnings.some((warning) => warning.includes("왕복 실행 경로")),
+    ).toBe(true);
   });
   it("does not confuse HTTP 200/business error with an empty working market", () =>
     expect(() =>
@@ -418,7 +440,7 @@ describe("live-source normalization", () => {
             {
               chain: "tron",
               vaultType: "PSM-USDT-A",
-              contractAddress: REGISTRY.psmCollateral,
+              contractAddress: REGISTRY.psmUsdtJoin,
               psmFee: "0",
               lockedValue: 99_000_000,
             },
@@ -431,6 +453,26 @@ describe("live-source normalization", () => {
     expect(data.availableUSDT).toBeNull();
     expect(data.toUSDDFeePct).toBeNull();
     expect(data.evidence).toHaveLength(2);
+  });
+  it("rejects a collateral API row that substitutes the PSM module for the Join adapter", () => {
+    expect(() =>
+      parsePsm(
+        {
+          code: 0,
+          data: {
+            items: [
+              {
+                chain: "tron",
+                vaultType: "PSM-USDT-A",
+                contractAddress: REGISTRY.psmUsdt,
+                psmFee: "0",
+              },
+            ],
+          },
+        },
+        "now",
+      ),
+    ).toThrow();
   });
   it("keeps live mode unavailable during network failure, without demo fallback", async () => {
     vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("offline")));
