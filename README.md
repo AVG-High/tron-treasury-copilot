@@ -75,7 +75,7 @@ npm run smoke
 
 ## 제출 자료
 
-[제출 직전 판정](docs/SUBMISSION-READY.md), [한국어·영어 소개문](docs/SUBMISSION-TEXT.md)을 준비했습니다. 별도로 제공하는 `artifacts/submission/treasury-source.zip`은 소스 묶음이며 `treasury-demo.mp4`는 영어 UI로 다시 녹화한 약 40초의 무음 데모 영상입니다. AI 응답·실거래 성공을 담은 영상은 아닙니다. 이 출력 폴더와 실제 `.env`는 Git에 포함하지 않습니다.
+[제출 직전 판정](docs/SUBMISSION-READY.md), [한국어·영어 소개문](docs/SUBMISSION-TEXT.md)을 준비했습니다. 별도로 제공하는 `artifacts/submission/treasury-source.zip`은 소스 묶음이며 `treasury-demo.mp4`는 영어 UI로 다시 녹화한 약 35초의 무음 데모 영상입니다. AI 응답·실거래 성공을 담은 영상은 아닙니다. 이 출력 폴더와 실제 `.env`는 Git에 포함하지 않습니다.
 
 로컬 서버를 켠 뒤 `DEMO_BASE_URL=http://127.0.0.1:4187 npm run demo:record`로 명시적 데모만 다시 녹화할 수 있습니다. Chromium 설치가 필요하며 기본 출력은 WebM입니다. MP4 제출본은 ffmpeg로 변환했습니다. 제출 폼의 요구 길이·업로드 링크는 별도로 확인해야 합니다.
 
