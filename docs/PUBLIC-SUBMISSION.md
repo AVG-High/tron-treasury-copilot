@@ -8,6 +8,8 @@ Plan around when you need your money, then compare TRON yield after costs and li
 
 - [Interactive demo](https://web-production-33c98.up.railway.app)
 - [35-second English demo video](https://github.com/AVG-High/tron-treasury-copilot/releases/download/gwdc-2026-submission/treasury-demo-en.mp4)
+- [English pitch deck PDF (8 slides)](https://github.com/AVG-High/tron-treasury-copilot/releases/download/gwdc-2026-submission/tron-treasury-copilot-pitch.pdf)
+- [Editable pitch deck PPTX](https://github.com/AVG-High/tron-treasury-copilot/releases/download/gwdc-2026-submission/tron-treasury-copilot-pitch.pptx)
 - [Source ZIP and release materials](https://github.com/AVG-High/tron-treasury-copilot/releases/tag/gwdc-2026-submission)
 - [Verified application commit](https://github.com/AVG-High/tron-treasury-copilot/tree/ae7a63579c4a45abf37cd96fe89f2881447db713)
 - [Remote tests and Docker startup verification](https://github.com/AVG-High/tron-treasury-copilot/actions/runs/36609364449)
@@ -39,3 +41,11 @@ The prototype prepares exact USDT approvals and JustLend supply or redemption tr
 For local setup and implementation details, see [README](../README.md), [architecture and submission description](SUBMISSION-TEXT.md), and [chain integration](CHAIN-INTEGRATION.md).
 
 Publication and deployment are complete review materials. Acceptance of the project by the organizer is a separate step; this page is not a submission receipt.
+
+## Final form fields confirmed by the submitter
+
+Select **Demo Stage**. A public prototype alone does not establish live user adoption.
+
+The final form requires a demo of at most 3 minutes and a PDF/PPT pitch deck. The English MP4 is 34.64 seconds. Where a file-upload field is provided, upload that MP4. If a hosted video URL is required, use a publicly accessible Notion, Google Drive, or YouTube link as requested by the organizer; acceptance of the GitHub download URL has not been confirmed.
+
+The current video demonstrates the manual planning workflow with sample data. It does not demonstrate a live AI response, so the form's AI decision-making demonstration requirement remains a submission gap. The pitch deck explains the architecture but does not substitute for a live AI demonstration.
