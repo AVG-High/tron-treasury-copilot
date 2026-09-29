@@ -43,6 +43,11 @@ import { api } from "./api";
 import { ReviewSimulation } from "./ReviewSimulation";
 import { MonitoringPanel } from "./MonitoringPanel";
 import { restorePlanConditions } from "./restore-plan";
+import {
+  getIntentReviewRequirements,
+  isIntentReviewComplete,
+} from "./intent-confirmation";
+import { PsmStatusPanel } from "./PsmStatusPanel";
 import { assertWallet, connectWallet, signAndBroadcast } from "./wallet";
 import { exportJson, readHistory, toSavedPlan, writeHistory } from "./history";
 
@@ -71,6 +76,7 @@ export default function App() {
   const [costs, setCosts] = useState<CostAssumptions>({ ...defaultCosts });
   const [text, setText] = useState(sample);
   const [parse, setParse] = useState<ParseResult | null>(null);
+  const [aiConditionsReviewed, setAiConditionsReviewed] = useState(false);
   const [snapshot, setSnapshot] = useState<MarketSnapshot | null>(null);
   const [result, setResult] = useState<PlanningResult | null>(null);
   const [selected, setSelected] = useState("");
@@ -91,6 +97,7 @@ export default function App() {
   const previewPlanId = useRef<string | undefined>(undefined);
   const pendingRef = useRef(false);
   const plan = result?.plans.find((p) => p.id === selected) ?? result?.plans[0];
+  const aiReview = getIntentReviewRequirements(parse);
   const allocationRows: Allocation[] = plan
     ? plan.allocations.some((a) => a.strategy === "wallet")
       ? plan.allocations
@@ -111,6 +118,7 @@ export default function App() {
     : [];
   const intentDirty = () => {
     inputRevision.current++;
+    setAiConditionsReviewed(false);
     setConfirmed(false);
     setPreview(null);
     setStressNote("");
@@ -170,6 +178,10 @@ export default function App() {
     }
   }
   async function calculate(input = intent, stress = "") {
+    if (!isIntentReviewComplete(parse, aiConditionsReviewed))
+      throw new Error(
+        "AI가 확인하지 못한 조건과 질문을 검토하고 현재 입력값 사용에 동의해 주세요.",
+      );
     const revision = inputRevision.current;
     const output = await api<PlanningResult>("/plan", {
       intent: input,
@@ -225,6 +237,31 @@ export default function App() {
     const saved = toSavedPlan(result, plan);
     setHistory((h) => ({ ...h, plans: [saved, ...h.plans] }));
     setNotice("현재 계획과 계산 가정을 이 브라우저에 저장했습니다.");
+  }
+  function loadExample(shortTerm: boolean) {
+    intentDirty();
+    const example = structuredClone(defaultIntent);
+    if (shortTerm) {
+      example.capitalUSDT = "2000";
+      example.expenses = [];
+      example.emergencyUSDT = "0";
+      example.horizonDays = 7;
+      example.maxUSDDExposurePct = 0;
+      example.maxProtocolExposurePct = 100;
+    }
+    setIntent(example);
+    setCosts({ ...defaultCosts });
+    setParse(null);
+    setResult(null);
+    setMode("demo");
+    setText(
+      shortTerm
+        ? "2,000 USDT를 7일간 운용하고 싶어요. 예정 지출과 비상금은 없고, USDD와 변동성 자산 및 레버리지는 사용하지 않습니다. JustLend 비중은 100%까지 허용해요."
+        : sample,
+    );
+    setNotice(
+      "데모 예시를 불러왔습니다. 아래 금액·기간·비용 가정을 확인한 후 비교 버튼을 눌러주세요.",
+    );
   }
   async function prepare(action: TransactionAction, resetAllowance = false) {
     await run("거래 준비", async () => {
@@ -554,6 +591,32 @@ export default function App() {
 
           {tab === "plan" && (
             <>
+              <section className="demo-quickstart" aria-label="빠른 데모 체험">
+                <div>
+                  <strong>1분 안에 핵심 흐름 체험</strong>
+                  <p>예시 선택 → 조건 확인하고 비교 → 지출 변화·가상 회고</p>
+                </div>
+                <div className="quickstart-actions">
+                  <button
+                    className="secondary"
+                    disabled={!!busy}
+                    onClick={() => loadExample(false)}
+                  >
+                    지출 먼저 확보
+                  </button>
+                  <button
+                    className="secondary"
+                    disabled={!!busy}
+                    onClick={() => loadExample(true)}
+                  >
+                    단기 운용 비용 비교
+                  </button>
+                </div>
+                <small>
+                  버튼을 누르면 입력값이 데모 예시로 바뀝니다. 실제 자금이나 AI
+                  해석 결과가 아닙니다.
+                </small>
+              </section>
               <section className="summary-grid" aria-label="자금 요약">
                 <Metric
                   label="총 계획 자금"
@@ -599,7 +662,8 @@ export default function App() {
                       value={text}
                       onChange={(e) => {
                         setText(e.target.value);
-                        inputRevision.current++;
+                        setParse(null);
+                        intentDirty();
                       }}
                       maxLength={4000}
                     />
@@ -838,9 +902,36 @@ export default function App() {
                       <span />
                       TRX 가격 노출 없음
                     </div>
+                    {aiReview.required && (
+                      <div className="ai-review-gate">
+                        <p>
+                          AI가 확정하지 못한 조건이 있습니다. 남아 있는 예시값을
+                          본인 조건으로 바꾸거나 직접 확인해 주세요.
+                        </p>
+                        {aiReview.missingLabels.length > 0 && (
+                          <p>
+                            미확인 항목: {aiReview.missingLabels.join(" · ")}
+                          </p>
+                        )}
+                        <label className="check-row">
+                          <input
+                            type="checkbox"
+                            checked={aiConditionsReviewed}
+                            onChange={(e) =>
+                              setAiConditionsReviewed(e.target.checked)
+                            }
+                          />
+                          질문과 현재 입력값을 검토했고, 변동 자산·레버리지 없이
+                          이 조건을 사용하겠습니다.
+                        </label>
+                      </div>
+                    )}
                     <button
                       className="primary full"
-                      disabled={!!busy}
+                      disabled={
+                        !!busy ||
+                        !isIntentReviewComplete(parse, aiConditionsReviewed)
+                      }
                       onClick={() => run("계획 계산", () => calculate())}
                     >
                       {busy === "계획 계산" ? (
@@ -1341,6 +1432,7 @@ export default function App() {
                   담보 조건을 추가 확인해야 합니다.
                 </p>
               </div>
+              {mode === "live" && <PsmStatusPanel />}
               <div className="evidence-grid">
                 {snapshot?.markets.map((m) => (
                   <div key={m.id}>

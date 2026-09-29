@@ -12,6 +12,7 @@ import {
   getTransactionStatus,
 } from "../chain/index.js";
 import { IntentServiceError, isAiConfigured, parseIntent } from "./intent.js";
+import { getPsmStatus } from "../chain/psm-status.js";
 
 const services = {
   getLiveSnapshot,
@@ -20,6 +21,7 @@ const services = {
   getTransactionStatus,
   parseIntent,
   planTreasury,
+  getPsmStatus,
 };
 const modeSchema = z.enum(["live", "demo"]);
 const addressSchema = z.string().regex(/^T[1-9A-HJ-NP-Za-km-z]{33}$/);
@@ -130,6 +132,8 @@ export function createApp(options: AppOptions = {}) {
     });
   let liveCache:
     { at: number; promise: ReturnType<typeof getLiveSnapshot> } | undefined;
+  let psmCache:
+    { at: number | null; promise: ReturnType<typeof getPsmStatus> } | undefined;
 
   app.disable("x-powered-by");
   app.set("trust proxy", false);
@@ -259,6 +263,19 @@ export function createApp(options: AppOptions = {}) {
   app.get("/api/wallet/:address", async (req, res) => {
     const address = addressSchema.parse(req.params.address);
     res.json(await api.getWalletState(address));
+  });
+  app.get("/api/psm-status", async (_req, res) => {
+    if (!psmCache || (psmCache.at !== null && now() - psmCache.at >= 30_000))
+      psmCache = { at: null, promise: api.getPsmStatus() };
+    const entry = psmCache;
+    try {
+      const value = await entry.promise;
+      if (entry.at === null) entry.at = now();
+      res.json(value);
+    } catch (error) {
+      if (psmCache === entry) psmCache = undefined;
+      throw error;
+    }
   });
   app.post("/api/transactions/prepare", async (req, res) => {
     const { planning, ...transaction } = transactionSchema.parse(req.body);

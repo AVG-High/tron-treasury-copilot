@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "smoke": "playwright test",
+    "demo:record": "node scripts/record-demo.mjs",
     "format": "prettier --write src tests docs *.ts *.json *.md *.html"
   },
   "dependencies": {

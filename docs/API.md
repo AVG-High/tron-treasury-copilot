@@ -22,6 +22,12 @@ malformed requests return 400. Unknown API paths return 404. Oversized JSON retu
 Live requests never substitute fixture data when an upstream service fails.
 Market reads cache for at most 30 seconds; execution preparation refetches relevant data.
 
+`GET /api/psm-status` reads pinned USDD PSM identities, direction toggles and fees on
+demand. It never receives a wallet address and never enables a route. Concurrent
+requests share the same in-flight read; completed results cache for 30 seconds.
+Unknown values stay null, and a public RPC quota failure is reported explicitly.
+See [PSM-STATUS.md](PSM-STATUS.md) for exact semantics and the live-validation limit.
+
 ## Confirmed supply context
 
 `action` is one of `approve-usdt`, `supply-usdt`, `withdraw-usdt`. Only supported
@@ -76,6 +82,11 @@ The returned object is independently validated, and the user must confirm it bef
 calculating a plan. Incomplete, refused, malformed and failed responses are rejected;
 the server does not fall back to invented AI output. APY conversion, reserve arithmetic,
 allocation, costs and breakeven are computed by the domain engine, not by the model.
+
+When AI returns missing fields or clarification questions, the UI labels values
+that remained from the form as unconfirmed. Calculation requires an explicit review
+of the current form and supported no-leverage/no-volatile-asset policy. Editing the
+conditions resets that review; example defaults are not represented as AI findings.
 
 Primary reference: [OpenAI Structured Outputs](https://developers.openai.com/api/docs/guides/structured-outputs).
 No production OpenAI call was required by the automated tests; the transport is mocked.

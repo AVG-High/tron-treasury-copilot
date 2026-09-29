@@ -12,3 +12,4 @@ docs/screenshots
 *.key
 *.p12
 *.pfx
+artifacts

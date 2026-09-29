@@ -128,6 +128,73 @@ const preview: TransactionPreview = {
 };
 
 describe("API boundary", () => {
+  it("keeps sharing a slow PSM read past the completed-result cache TTL", async () => {
+    let clock = Date.now();
+    let resolve!: (value: unknown) => void;
+    const deferred = new Promise((done) => {
+      resolve = done;
+    });
+    const read = vi.fn().mockReturnValue(deferred);
+    const request = await serve({
+      services: { getPsmStatus: read },
+      now: () => clock,
+    });
+    const first = request("/api/psm-status");
+    await vi.waitFor(() => expect(read).toHaveBeenCalledTimes(1));
+    clock += 31000;
+    const second = request("/api/psm-status");
+    resolve({ quality: "unavailable" });
+    await Promise.all([first, second]);
+    expect(read).toHaveBeenCalledTimes(1);
+  });
+
+  it("coalesces on-demand PSM reads and preserves unknown status without authorizing a route", async () => {
+    let clock = Date.now();
+    const state = {
+      quality: "unavailable" as const,
+      fetchedAt: new Date(clock).toISOString(),
+      chain: "tron-mainnet" as const,
+      usddAddress: owner,
+      psmAddress: owner,
+      joinAddress: owner,
+      sellEnabled: null,
+      buyEnabled: null,
+      toUSDDFeePct: null,
+      fromUSDDFeePct: null,
+      availableUSDT: null,
+      evidence: [],
+      warnings: ["rate limited"],
+    };
+    const read = vi.fn().mockResolvedValue(state);
+    const request = await serve({
+      services: { getPsmStatus: read },
+      now: () => clock,
+    });
+    const responses = await Promise.all([
+      request("/api/psm-status"),
+      request("/api/psm-status"),
+    ]);
+    expect(read).toHaveBeenCalledTimes(1);
+    expect(await responses[0].json()).toMatchObject({
+      quality: "unavailable",
+      sellEnabled: null,
+      availableUSDT: null,
+    });
+    clock += 30001;
+    await request("/api/psm-status");
+    expect(read).toHaveBeenCalledTimes(2);
+  });
+
+  it("discards a rejected PSM cache without leaking exception details", async () => {
+    const read = vi.fn().mockRejectedValue(new Error("upstream-secret"));
+    const request = await serve({ services: { getPsmStatus: read } });
+    const response = await request("/api/psm-status");
+    expect(response.status).toBe(502);
+    expect(await response.text()).not.toContain("upstream-secret");
+    await request("/api/psm-status");
+    expect(read).toHaveBeenCalledTimes(2);
+  });
+
   it("keeps Railway liveness available under exhausted API limits without exposing application metadata", async () => {
     const publicOrigin = "https://treasury.example";
     const live = vi.fn();

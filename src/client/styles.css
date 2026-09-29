@@ -1957,6 +1957,87 @@ footer > span:first-child {
   margin-top: 24px;
   padding-top: 20px;
 }
+.demo-quickstart {
+  padding: 17px 20px;
+  border: 1px solid #3d5132;
+  background: #192417;
+  border-radius: 6px;
+  margin-bottom: 18px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+.demo-quickstart strong {
+  font-size: 12px;
+  color: #c6dcb5;
+  font-weight: 500;
+}
+.demo-quickstart p,
+.demo-quickstart small {
+  font-size: 10px;
+  color: #91a482;
+  line-height: 1.7;
+}
+.demo-quickstart p {
+  margin-top: 6px;
+}
+.demo-quickstart small {
+  width: 100%;
+}
+.quickstart-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.quickstart-actions .secondary {
+  font-size: 11px;
+}
+.ai-review-gate {
+  border: 1px solid #695737;
+  background: #2c271e;
+  border-radius: 5px;
+  padding: 13px;
+  margin: 15px 0;
+  font-size: 11px;
+  line-height: 1.8;
+  color: #d6c49c;
+}
+.ai-review-gate p + p {
+  margin-top: 7px;
+}
+.psm-status {
+  border: 1px solid #3e5132;
+  border-radius: 5px;
+  padding: 18px;
+  margin-top: 18px;
+}
+.psm-status p {
+  margin: 10px 0;
+}
+.psm-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin: 16px 0;
+}
+.psm-grid > div {
+  border: 1px solid #344a2b;
+  padding: 12px;
+  border-radius: 4px;
+}
+.psm-grid small {
+  font-size: 10px;
+  color: #94ad85;
+  display: block;
+  margin-bottom: 8px;
+}
+.psm-grid strong {
+  color: #c3dbaf;
+  font-size: 14px;
+  font-weight: 500;
+}
 .replay-controls {
   display: grid;
   grid-template-columns: 1fr 1fr;
