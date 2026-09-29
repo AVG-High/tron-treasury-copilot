@@ -6,7 +6,7 @@
 - package 이름: `tron-treasury-copilot`
 - 목적: GWDC 2026 Korea / TRON Challenge B의 지출 일정 중심 자금 계획·사용자 서명 실행 프로토타입
 - RANGE, ddaribot, Canton과 분리. 해당 프로젝트의 파일·환경·DB·지갑·프로세스를 사용하지 않았습니다.
-- GitHub 게시·Railway 배포는 이 작업에서 수행하지 않았습니다.
+- GitHub 게시·Railway 배포는 사용자 승인 후 2026-09-29 완료했습니다. 아래 최신 공개 기록 참조. 주최 측 최종 접수는 미완료입니다.
 
 ## 완료한 범위
 
@@ -76,3 +76,18 @@
 - 실제 앱 화면을 새로 녹화한 `artifacts/submission/treasury-demo.mp4`가 영어 제출본입니다. 이전 한국어 영상은 `treasury-demo-ko.mp4`로 보존합니다.
 - 검증: typecheck/build, 187개 단위·통합 검사, 14개 브라우저 검사 통과. 기존 모바일 넘침 검사도 통과했습니다.
 - 이 작업은 데모 경로와 공통 화면 문구의 영어화입니다. 실시간 API 장애·관측 엔진에서 전달하는 일부 운영 메시지와 기존 브라우저에 저장된 사용자 작성 한국어 기록은 일괄 번역하지 않았습니다. 새 브라우저로 녹화하며 사용자 기록을 수정하지 않습니다.
+
+## 공개 게시·배포 — 2026-09-29
+
+- 사용자가 공개 저장소와 별도 Railway 배포를 명시적으로 승인했습니다.
+- 저장소: https://github.com/AVG-High/tron-treasury-copilot
+- 공개 앱: https://web-production-33c98.up.railway.app
+- 영어 영상·소스 릴리스: https://github.com/AVG-High/tron-treasury-copilot/releases/tag/gwdc-2026-submission
+- 배포·릴리스의 앱 코드: `ae7a63579c4a45abf37cd96fe89f2881447db713`. 이후 문서 커밋은 실행 코드 변경이 아닙니다.
+- 전용 Railway project `602f60e9-82b3-45d3-9adf-9a28c73c970e`, production environment `882a7a1b-2fd3-43b6-9453-994f3a55078b`, web service `e2ae2afb-7267-43df-991a-05b22e3a1a78`, deployment `5c72c93d-2389-41c4-8e3b-181a95dc024f`. 기존 프로젝트는 변경하지 않았습니다.
+- 공개 변수는 NODE_ENV=production, HOST=0.0.0.0, PORT=4187, PUBLIC_ORIGIN=공개 앱 주소뿐입니다. 다른 프로젝트 키를 복사하지 않았으며 공개 유료 AI는 비활성입니다.
+- GitHub Actions `36609364449` 성공: 187개 단위·통합 / 14개 브라우저 / 빌드 / Docker 실행 / Railway Host 검사. 초기 로컬 Docker 미설치 경계와 별도로 원격 Docker 검증이 완료됐습니다.
+- 외부 HTTPS 검증(2026-09-29 18:10:15 UTC): /healthz, /api/health, 영어 HTML·JS, 데모 지출 예약 4,500 USDT, 단기 보유 단일안 통과. 실제 지갑·자금은 사용하지 않았습니다.
+- 영어 영상 길이 34.64초. 로그인 없는 공개 다운로드 HTTP 206 확인.
+- **최종 접수는 미완료입니다.** 공식 공개 Google Form은 Developer Registration이며 최종 프로젝트 업로드 항목이 없습니다. 최종 제출 폼 링크를 사용자에게 요청했습니다. 팀명·대표자·이메일은 `artifacts/submission/FORM-ANSWERS.txt`와 `submission-status.json`에만 보관합니다(Git 제외, 권한 600). 이미 승인된 게시·배포 승인을 다시 요청하지 않습니다.
+- 제출 시 자료의 AI·실자금 미검증 경계를 유지하고, 실제 접수 확인 화면이나 접수 번호를 확보한 후에만 완료라고 기록합니다.

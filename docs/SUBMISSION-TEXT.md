@@ -1,6 +1,6 @@
 # 제출 폼에 사용할 소개문
 
-아래 한국어·영어 소개는 현재 구현 범위에 맞춘 초안입니다. 제출 폼의 글자 수에 맞춰 선택합니다. 실제 공개 URL·Git 원격·팀 정보는 추정하지 않았습니다. 로컬 무음 데모 영상과 소스 묶음은 `artifacts/submission`에 준비합니다. 미검증 항목을 삭제하여 완료한 것처럼 제출하지 않습니다.
+아래 한국어·영어 소개는 현재 구현 범위에 맞춘 초안입니다. 제출 폼의 글자 수에 맞춰 선택합니다. 공개 실행·영상·저장소 링크는 [PUBLIC-SUBMISSION.md](PUBLIC-SUBMISSION.md)에 확정 기록했습니다. 팀명은 AVG_High이며 연락처는 공개 문서에 넣지 않습니다. 로컬 무음 데모 영상과 소스 묶음은 `artifacts/submission`에 준비합니다. 미검증 항목을 삭제하여 완료한 것처럼 제출하지 않습니다.
 
 ## 프로젝트 이름과 한 문장
 
@@ -30,7 +30,7 @@ The optional AI layer extracts structured requirements for the user to review. A
 
 The prototype prepares exact USDT approvals and JustLend deposit or redemption transactions. Users inspect each transaction and sign through TronLink; the server holds no private keys and cannot sign transactions. Saved assumptions, browser-based monitoring, and explicitly labeled simulated review connect the original plan to changing conditions.
 
-**Validation status:** This submission provides a working local prototype and automated tests. Live AI responses and a funded wallet round trip have not yet been verified. USDD data integration is implemented, while USDD conversion and investment execution remain disabled. The product does not claim autonomous fund management or a complete realized-profit ledger.
+**Validation status:** This submission provides a working prototype, a public manual-input demo, and automated tests. Live AI responses and a funded wallet round trip have not yet been verified. USDD data integration is implemented, while USDD conversion and investment execution remain disabled. The product does not claim autonomous fund management or a complete realized-profit ledger.
 
 ## 차별점 / What makes it different
 
@@ -83,8 +83,8 @@ Live mode reads official protocol data and shows failures explicitly. User-signe
 ## 제출 폼에 별도로 채울 실제 자료
 
 - 팀 이름·구성원·연락처: 제출자가 입력.
-- 코드 저장소: 아직 원격 저장소 없음. 생성 후 접근 가능한 실제 URL을 입력.
-- 실행 링크: 현재 로컬 실행. 공개 배포 후 실제 HTTPS URL을 입력하거나 제출 형식이 허용하는 로컬 실행 안내를 사용.
+- 코드 저장소: https://github.com/AVG-High/tron-treasury-copilot
+- 실행 링크: https://web-production-33c98.up.railway.app
 - 시연 영상: `artifacts/submission/treasury-demo.mp4`는 실제 앱의 짧은 무음 데모 화면 녹화입니다. 데이터는 명시적인 예시이며 AI 응답·실자금 거래 시연이 아닙니다. 제출 폼이 영상 링크를 요구하면 별도로 업로드해야 합니다.
 - 검증 커밋·테스트 결과: 최종 `RESUME.md`와 실제 Git 커밋을 기준으로 입력.
 

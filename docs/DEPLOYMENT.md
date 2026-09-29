@@ -1,6 +1,6 @@
 # 독립 배포 실행서
 
-이 문서는 `tron-treasury-copilot` 전용 배포 준비입니다. 현재 배포 완료를 뜻하지 않습니다. 기존 RANGE·따리봇·Canton의 Railway 프로젝트, 서비스, 환경 변수, 도메인, DB는 재사용하지 않습니다. 같은 Railway 계정 안에 새 프로젝트와 서비스를 만들면 되며, 계정 구독과 실제 추가 서비스 사용량은 구분해서 확인합니다.
+이 문서는 `tron-treasury-copilot` 전용 배포 실행서입니다. 2026-09-29 사용자 승인 후 공개 배포를 완료했습니다. 현재 주소·검증은 [PUBLIC-SUBMISSION.md](PUBLIC-SUBMISSION.md)와 RESUME.md 최신 기록을 우선합니다. 기존 RANGE·따리봇·Canton의 Railway 프로젝트, 서비스, 환경 변수, 도메인, DB는 재사용하지 않습니다. 같은 Railway 계정 안에 새 프로젝트와 서비스를 만들면 되며, 계정 구독과 실제 추가 서비스 사용량은 구분해서 확인합니다.
 
 ## 준비된 배포 구성
 
@@ -65,5 +65,5 @@ curl --fail --silent --show-error 'https://YOUR-SERVICE.up.railway.app/api/marke
 ## 아직 남은 배포 증거
 
 - 로컬 Docker CLI가 없어 이 작업 환경에서 Docker build/run은 실행하지 못했습니다. CI에 이를 확인하는 단계를 준비했습니다.
-- GitHub 원격 실행, Railway 배포, 공개 HTTPS 접속 결과는 아직 없습니다.
+- 2026-09-29 GitHub Actions 및 원격 Docker 검증, Railway 배포, 공개 HTTPS의 데모 API 검증을 완료했습니다.
 - 실제 지갑 연결·예치·회수, 실제 OpenAI 호출은 사용자 설정 후 따로 검증해야 합니다.

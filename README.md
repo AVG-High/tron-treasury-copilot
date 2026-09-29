@@ -1,5 +1,9 @@
 # TRON Treasury Copilot
 
+**[Open the public demo](https://web-production-33c98.up.railway.app) · [English reviewer guide](docs/PUBLIC-SUBMISSION.md) · [English video and source ZIP](https://github.com/AVG-High/tron-treasury-copilot/releases/tag/gwdc-2026-submission)**
+
+Team AVG_High · GWDC Korea 2026 / TRON Challenge B. The public demo uses manual inputs; the video uses sample data. Live AI responses and funded transactions remain unverified.
+
 **돈이 필요할 때, 준비된 자금.** 예정 지출과 비상금을 먼저 확보하고, 남는 USDT의 운용안을 비용·유동성·노출 한도와 함께 비교합니다. GWDC 2026 Korea / TRON Challenge B를 위한 독립 프로젝트입니다.
 
 ## 실행
@@ -86,10 +90,10 @@ npm run smoke
 | `src/domain` | 입력 스키마, 정확한 금융 계산, 명시적인 데모/가상 회고        |
 | `src/chain`  | 공식 데이터, 고정 계약·코드 검증, 지갑 읽기, 미서명 거래 준비 |
 | `src/server` | API, 요청 검증·출처 제한, AI 조건 추출                        |
-| `src/client` | 한국어 UI, 사용자 지갑 서명, 브라우저 기록                    |
+| `src/client` | 영어 UI, 사용자 지갑 서명, 브라우저 기록                    |
 | `tests`      | 계산·API·거래 경계·브라우저 검증                              |
 | `docs`       | 근거, 해커톤 요건, 재개 기록, 화면                            |
 
 ## 배포 준비
 
-Dockerfile과 Railway 설정, GitHub Actions 검증을 준비했습니다. [배포 실행서](docs/DEPLOYMENT.md)에 환경 변수·독립 서비스 설정·상태 확인을 정리했습니다. [시연 대본](docs/DEMO-SCRIPT.md)과 [제출 체크리스트](docs/SUBMISSION-CHECKLIST.md)도 포함합니다. 이 작업에서는 외부 저장소 게시나 배포를 하지 않았고 기존 Railway 서비스·DB·환경 변수를 변경하지 않았습니다.
+Dockerfile과 Railway 설정, GitHub Actions 검증을 준비했습니다. [배포 실행서](docs/DEPLOYMENT.md)에 환경 변수·독립 서비스 설정·상태 확인을 정리했습니다. [시연 대본](docs/DEMO-SCRIPT.md)과 [제출 체크리스트](docs/SUBMISSION-CHECKLIST.md)도 포함합니다. 사용자 승인 후 공개 GitHub 저장소와 전용 Railway 웹 서비스를 게시했습니다. 기존 프로젝트의 서비스·DB·환경 변수는 변경하지 않았습니다. 실행·영상 링크와 검증 결과는 [공개 제출 안내](docs/PUBLIC-SUBMISSION.md)를 참조하세요. 주최 측 최종 접수는 제출 폼 확인 전까지 완료되지 않았습니다.
