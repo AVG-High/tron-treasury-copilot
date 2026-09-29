@@ -42,21 +42,21 @@ const fresh = (date: string, now: number) => {
 };
 const inputIssue = (issue: { path: PropertyKey[]; message: string }) => {
   const labels: Record<string, string> = {
-    capitalUSDT: "총자금",
-    horizonDays: "운용 기간",
-    emergencyUSDT: "비상금",
-    expenses: "예정 지출",
-    maxUSDDExposurePct: "USDD 노출 한도",
-    maxProtocolExposurePct: "프로토콜 노출 한도",
-    allowVolatile: "변동성 자산 허용",
-    allowLeverage: "레버리지 허용",
-    justlendUsdtRoundTripUSDT: "USDT 왕복 비용",
-    justlendUsddRoundTripUSDT: "USDD 왕복 비용",
-    source: "비용 출처",
-    includeIncentives: "보상 포함 여부",
+    capitalUSDT: "Total capital",
+    horizonDays: "Investment horizon",
+    emergencyUSDT: "Emergency reserve",
+    expenses: "Scheduled expenses",
+    maxUSDDExposurePct: "USDD exposure limit",
+    maxProtocolExposurePct: "Protocol exposure limit",
+    allowVolatile: "Allow volatile assets",
+    allowLeverage: "Allow leverage",
+    justlendUsdtRoundTripUSDT: "USDT round-trip cost",
+    justlendUsddRoundTripUSDT: "USDD round-trip cost",
+    source: "Cost source",
+    includeIncentives: "Include incentives",
   };
-  const label = labels[String(issue.path[0])] ?? "입력값";
-  return `${label}: ${/[가-힣]/.test(issue.message) ? issue.message : "형식과 허용 범위를 확인해 주세요."}`;
+  const label = labels[String(issue.path[0])] ?? "Input";
+  return `${label}: ${/[가-힣]/.test(issue.message) ? issue.message : "Check the format and allowed range."}`;
 };
 
 interface CandidateMarket {
@@ -116,33 +116,33 @@ export function planTreasury(
   result.availableUSDT = money(D.max(ZERO, available));
   if (available.isNegative()) {
     result.errors = [
-      `예정 지출과 비상금이 총자금보다 ${money(available.negated())} USDT 많습니다. 투자 전에 지출을 줄이거나 자금을 보충해 주세요.`,
+      `Scheduled expenses and emergency reserves exceed total capital by ${money(available.negated())} USDT. Reduce expenses or add funds before investing.`,
     ];
     return result;
   }
   result.feasible = true;
   const generalWarnings = [
-    "현재 금리가 유지된다는 가정입니다. 수익을 보장하지 않으며 스테이블코인과 프로토콜에도 손실 위험이 있습니다.",
-    "예정 지출은 전액 확보합니다. 남은 자금의 운용 기간은 지출일과 별도로 적용합니다.",
-    "현재 시장 유동성과 PSM 잔액은 미래 출금을 보장하지 않습니다.",
-    "가용 예산의 25·50·75·100% 사용과 상품 간 0·25·50·75·100% 배분을 한도 내에서 비교합니다. 모든 배분의 최적해를 뜻하지 않습니다.",
+    "Assumes rates stay unchanged. Returns are not guaranteed; stablecoins and protocols carry loss risk.",
+    "All scheduled expenses are reserved. The investment horizon applies separately to the remaining funds.",
+    "Current market liquidity and PSM balances do not guarantee future withdrawals.",
+    "Compares 25/50/75/100% budget usage and 0/25/50/75/100% product splits within your limits. This is not a global optimization of all possible allocations.",
     ...(snapshot.mode === "demo"
-      ? ["데모 데이터로 만든 계획은 실행할 수 없습니다."]
+      ? ["Plans based on demo data cannot be executed."]
       : []),
     ...(costs.source === "user-assumption"
-      ? ["비용은 사용자 가정값입니다. 지갑별 실제 실행 견적이 아닙니다."]
+      ? ["Costs are user assumptions, not wallet-specific execution quotes."]
       : []),
     ...(costs.includeIncentives
       ? [
-          "보상은 연환산 보상률을 기간에 따라 단리 환산한 참고치입니다. 자동 복리를 가정하지 않으며 토큰 가격·종료일·수령·매도 비용을 별도 확인해야 합니다.",
+          "Incentives use a simple annualized estimate, without automatic compounding. Check token prices, end dates, and claim and sale costs separately.",
         ]
       : []),
     ...snapshot.warnings,
   ];
   result.plans.push({
     id: "hold",
-    name: "현금 보유",
-    objective: "DeFi 거래 없이 지출 대응 자금을 유지합니다.",
+    name: "Hold USDT",
+    objective: "Keep funds available for expenses without DeFi transactions.",
     allocations: [
       {
         strategy: "wallet",
@@ -152,8 +152,8 @@ export function planTreasury(
         costUSDT: "0.000000",
         netYieldUSDT: "0.000000",
         reasons: [
-          "추가 거래가 필요하지 않습니다.",
-          "지갑의 USDT에도 발행사 위험과 페그 이탈 위험이 있습니다.",
+          "No additional transactions required.",
+          "USDT held in a wallet still carries issuer and depegging risk.",
         ],
       },
     ],
@@ -182,7 +182,7 @@ export function planTreasury(
       exclude(
         id,
         matches.length ? "duplicate-market" : "missing-market",
-        "완전한 시장 데이터가 하나 필요합니다. 누락되거나 중복된 데이터는 사용하지 않습니다.",
+        "Exactly one complete market record is required. Missing or duplicate data is not used.",
       );
       continue;
     }
@@ -192,7 +192,7 @@ export function planTreasury(
       exclude(
         id,
         "asset-mismatch",
-        "전략의 자산과 시장의 자산이 일치하지 않습니다.",
+        "The strategy asset does not match the market asset.",
       );
       continue;
     }
@@ -200,7 +200,7 @@ export function planTreasury(
       exclude(
         id,
         "inactive-market",
-        "이 시장은 신규 예치가 활성화되지 않았습니다.",
+        "New deposits are disabled for this market.",
       );
       continue;
     }
@@ -213,7 +213,7 @@ export function planTreasury(
       exclude(
         id,
         "unverified-data",
-        "실시간 시장에는 5분 이내에 확인한 데이터가 필요합니다. 누락값을 데모로 대신하지 않습니다.",
+        "Live markets require data checked within 5 minutes. Missing values are not replaced with demo data.",
       );
       continue;
     }
@@ -222,7 +222,11 @@ export function planTreasury(
       (!market.evidence.length ||
         market.evidence.some((evidence) => !fresh(evidence.fetchedAt, now)))
     ) {
-      exclude(id, "stale-evidence", "최신 시장 출처를 확인해야 합니다.");
+      exclude(
+        id,
+        "stale-evidence",
+        "Fresh market source evidence is required.",
+      );
       continue;
     }
     const rate = number(market.baseApy, "1000000");
@@ -232,7 +236,7 @@ export function planTreasury(
       exclude(
         id,
         "missing-rate-or-cash",
-        "기본 APY와 출금 가능 유동성이 모두 확인되어야 합니다.",
+        "Both base APY and withdrawal liquidity must be verified.",
       );
       continue;
     }
@@ -240,7 +244,7 @@ export function planTreasury(
       exclude(
         id,
         "missing-incentive-rate",
-        "선택한 보상률을 확인하지 못했습니다. 누락된 보상을 0으로 처리하지 않습니다.",
+        "The selected incentive rate is unverified. Missing incentives are not treated as zero.",
       );
       continue;
     }
@@ -255,7 +259,7 @@ export function planTreasury(
         exclude(
           id,
           "usdd-exposure-disallowed",
-          "USDD 노출을 허용하지 않은 조건입니다.",
+          "Your conditions do not allow USDD exposure.",
         );
         continue;
       }
@@ -274,7 +278,7 @@ export function planTreasury(
         exclude(
           id,
           "psm-roundtrip-unavailable",
-          "PSM 왕복 전환, 수수료와 현재 USDT 회수 가능액이 모두 확인되어야 합니다.",
+          "Both PSM directions, fees, and currently redeemable USDT must be verified.",
         );
         continue;
       }
@@ -286,7 +290,7 @@ export function planTreasury(
         exclude(
           id,
           "stale-psm",
-          "실시간 왕복 경로에는 최신 PSM 상태가 필요합니다.",
+          "A live round-trip route requires fresh PSM status.",
         );
         continue;
       }
@@ -303,7 +307,7 @@ export function planTreasury(
       exclude(
         id,
         "zero-capacity",
-        "노출 한도 또는 현재 출금 유동성 때문에 배분 가능한 금액이 없습니다.",
+        "Exposure limits or current withdrawal liquidity leave no allocatable amount.",
       );
       continue;
     }
@@ -311,7 +315,7 @@ export function planTreasury(
       exclude(
         id,
         "zero-yield",
-        "현재 수익률로는 현금 보유보다 추가 수익을 기대할 수 없습니다.",
+        "Current rates offer no expected additional return over holding cash.",
       );
       continue;
     }
@@ -365,14 +369,16 @@ export function planTreasury(
         costUSDT: money(cost),
         netYieldUSDT: money(gross.plus(incentive).minus(cost)),
         reasons: [
-          `남은 자금의 운용 기간 ${intent.horizonDays}일, 기본 APY ${candidate.rate.mul(100).toString()}% 유지 가정입니다.`,
-          "원금과 추정 기본 이자의 합계가 현재 확인한 출금 유동성 이내입니다.",
+          `Assumes an investment horizon of ${intent.horizonDays} days and an unchanged base APY of ${candidate.rate.mul(100).toString()}%.`,
+          "Principal plus estimated base interest fits within current verified withdrawal liquidity.",
           ...(candidate.market.asset === "USDD"
             ? [
-                "USDD와 USDT의 1:1 가치를 가정하며 페그를 보장하지 않습니다.",
-                "PSM 왕복 비용을 반영하며 다른 JustLend 시장과 프로토콜 노출 한도를 공유합니다.",
+                "Assumes 1:1 USDD/USDT value; the peg is not guaranteed.",
+                "Includes PSM round-trip costs and shares the protocol exposure cap with other JustLend markets.",
               ]
-            : ["USDT를 예치하므로 다른 스테이블코인으로 전환하지 않습니다."]),
+            : [
+                "Supplies USDT directly without conversion to another stablecoin.",
+              ]),
           ...candidate.market.warnings,
         ],
       };
@@ -397,8 +403,8 @@ export function planTreasury(
       .join("|");
     allocations.set(key, {
       id: `candidate-${allocations.size + 1}`,
-      name: "수익 시나리오",
-      objective: "왕복 비용을 확보한 뒤 순수익을 비교합니다.",
+      name: "Yield scenario",
+      objective: "Compare net returns after reserving round-trip costs.",
       allocations: rows,
       reserveUSDT: money(reserve),
       freeCashUSDT: money(free),
@@ -417,7 +423,7 @@ export function planTreasury(
         ...generalWarnings,
         ...(rows.some((row) => row.strategy === "justlend-usdd")
           ? [
-              "USDD 경로는 비교용입니다. 이 버전에서는 USDD 거래를 실행하지 않습니다.",
+              "The USDD route is for comparison only. This version does not execute USDD transactions.",
               ...snapshot.psm.warnings,
             ]
           : []),
@@ -489,8 +495,9 @@ export function planTreasury(
       withBreakeven({
         ...best,
         id: "yield",
-        name: "순수익 우선",
-        objective: "비교한 배분 후보 중 추정 순수익이 가장 높은 안입니다.",
+        name: "Net return first",
+        objective:
+          "The highest estimated net return among the allocations compared.",
       }),
     );
     const halfPrincipal = new D(best.investedUSDT).div(2);
@@ -507,9 +514,9 @@ export function planTreasury(
         withBreakeven({
           ...alternative,
           id: "liquidity",
-          name: "유동성 우선",
+          name: "Liquidity first",
           objective:
-            "추정 순수익을 유지하면서 자유롭게 쓸 수 있는 현금을 더 남깁니다.",
+            "Keep more cash available while preserving a positive estimated net return.",
         }),
       );
   }
@@ -524,7 +531,7 @@ export function planTreasury(
       exclude(
         candidate.market.id,
         "no-positive-net-candidate",
-        "왕복 비용과 제약을 반영하면 비교한 배분 중 현금 보유보다 순수익이 높은 안이 없습니다.",
+        "After round-trip costs and constraints, none of the compared allocations beats holding cash.",
       );
     }
   }

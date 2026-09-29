@@ -21,12 +21,32 @@ const context = await browser.newContext({
 const page = await context.newPage();
 const errors = [];
 page.on("pageerror", (error) => errors.push(error.message));
-const pause = () => page.waitForTimeout(4500); // Deliberate reading time in the submitted silent screen recording.
+let scene = 0;
+const pause = async () => {
+  const display = await page.evaluate(() => ({
+    text:
+      document.body.innerText +
+      Array.from(document.querySelectorAll("input, textarea"))
+        .map((input) => input.value)
+        .join(" "),
+    overflow: document.documentElement.scrollWidth > innerWidth,
+    language: document.documentElement.lang,
+  }));
+  if (display.language !== "en" || /[가-힣]/u.test(display.text))
+    throw new Error("The English demo still contains Korean display text.");
+  if (display.overflow)
+    throw new Error("The English demo has horizontal overflow.");
+  await page.screenshot({
+    path: path.join(output, `english-scene-${++scene}.png`),
+  });
+  await page.waitForTimeout(4500); // Reading time for the silent recording.
+};
 try {
   await page.goto(base.href);
   await page.evaluate(() => {
     const disclosure = document.createElement("div");
-    disclosure.textContent = "DEMO · 예시 데이터 · AI 응답/실거래 미검증";
+    disclosure.textContent =
+      "DEMO · Sample data · AI and real transactions not verified";
     Object.assign(disclosure.style, {
       position: "fixed",
       right: "16px",
@@ -43,40 +63,54 @@ try {
     document.body.append(disclosure);
   });
   await page
-    .getByRole("heading", { name: "돈이 필요할 때, 준비된 자금." })
+    .getByRole("heading", { name: "Your money, ready when you need it." })
     .waitFor();
   await pause();
   await page
-    .getByRole("button", { name: "지출 먼저 확보", exact: true })
+    .getByRole("button", { name: "Reserve expenses first", exact: true })
     .click();
-  await page.getByRole("button", { name: "조건 확인하고 비교" }).click();
-  await page.getByRole("heading", { name: "자금 배분", exact: true }).waitFor();
+  await page.getByRole("button", { name: "Confirm and compare" }).click();
+  await page
+    .getByRole("heading", { name: "Capital allocation", exact: true })
+    .waitFor();
   await page.locator(".results-card").scrollIntoViewIfNeeded();
   await pause();
   await page
-    .getByRole("button", { name: "추가 지출 +3,000", exact: true })
+    .getByRole("button", { name: "Extra expense +3,000", exact: true })
     .click();
-  await page.getByText("가상 시나리오", { exact: true }).waitFor();
+  await page.getByText("Simulated scenario", { exact: true }).waitFor();
   await page.locator(".results-card").scrollIntoViewIfNeeded();
   await pause();
-  await page.getByRole("button", { name: "원래 조건", exact: true }).click();
-  await page.getByRole("button", { name: "계획 저장", exact: true }).click();
-  await page.getByRole("button", { name: "포지션·회고", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Original conditions", exact: true })
+    .click();
+  // Wait for the recalculation to finish before saving the restored plan.
+  await page
+    .getByText("Simulated scenario", { exact: true })
+    .waitFor({ state: "detached" });
+  await page.getByRole("button", { name: "Save plan", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Positions and review", exact: true })
+    .click();
   await page.locator(".review-simulation").scrollIntoViewIfNeeded();
   await pause();
-  await page.getByLabel("회고 금리 비율").fill("1");
-  await page.getByLabel("회고 비용 비율").fill("1");
+  await page.getByLabel("Review rate multiplier").fill("1");
+  await page.getByLabel("Review cost multiplier").fill("1");
   await pause();
-  await page.getByRole("button", { name: "자금 계획", exact: true }).click();
   await page
-    .getByRole("button", { name: "단기 운용 비용 비교", exact: true })
+    .getByRole("button", { name: "Treasury plan", exact: true })
     .click();
-  await page.getByRole("button", { name: "조건 확인하고 비교" }).click();
-  await page.getByRole("heading", { name: "자금 배분", exact: true }).waitFor();
+  await page
+    .getByRole("button", { name: "Short-term cost check", exact: true })
+    .click();
+  await page.getByRole("button", { name: "Confirm and compare" }).click();
+  await page
+    .getByRole("heading", { name: "Capital allocation", exact: true })
+    .waitFor();
   await page.locator(".results-card").scrollIntoViewIfNeeded();
   await pause();
   await page
-    .getByRole("button", { name: "지출 먼저 확보", exact: true })
+    .getByRole("button", { name: "Reserve expenses first", exact: true })
     .click();
   await page.evaluate(() => window.scrollTo(0, 0));
   await pause();

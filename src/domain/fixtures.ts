@@ -7,13 +7,13 @@ export const defaultIntent: TreasuryIntent = {
   expenses: [
     {
       id: "payroll",
-      label: "다음 주 지급액",
+      label: "Payment next week",
       amountUSDT: "3000",
       dueInDays: 7,
     },
     {
       id: "operations",
-      label: "다음 달 운영비",
+      label: "Operating costs next month",
       amountUSDT: "1000",
       dueInDays: 30,
     },
@@ -50,19 +50,19 @@ export const demoSnapshot: MarketSnapshot = {
       quality: "demo",
       evidence: [
         {
-          label: "예시 데이터 · 실시간 금리 아님",
+          label: "Sample data · not live rates",
           url: "https://docs.justlend.org/developers/apis/",
           fetchedAt: fixtureTime,
-          note: "금리와 유동성은 시연을 위해 설정한 가정값입니다.",
+          note: "Rates and liquidity are illustrative assumptions for this demo.",
         },
       ],
       warnings: [
-        "데모 금리·유동성·주소입니다. 거래 실행에는 사용할 수 없습니다.",
+        "Demo rates, liquidity, and addresses. Not valid for executing transactions.",
       ],
     },
     {
       id: "justlend-usdd",
-      name: "JustLend USDD · PSM 경유",
+      name: "JustLend USDD · via PSM",
       asset: "USDD",
       baseApy: "0.076",
       rewardApy: "0.02",
@@ -73,14 +73,14 @@ export const demoSnapshot: MarketSnapshot = {
       quality: "demo",
       evidence: [
         {
-          label: "예시 데이터 · 실시간 금리 아님",
+          label: "Sample data · not live rates",
           url: "https://docs.justlend.org/developers/apis/",
           fetchedAt: fixtureTime,
-          note: "USDD와 USDT의 1:1 가정이며 페그를 보장하지 않습니다.",
+          note: "Assumes 1:1 USDD/USDT value. The peg is not guaranteed.",
         },
       ],
       warnings: [
-        "USDD는 페그가 이탈할 수 있습니다. 현재 PSM 가용량은 미래 회수를 보장하지 않습니다.",
+        "USDD can depeg. Current PSM capacity does not guarantee future exits.",
       ],
     },
   ],
@@ -93,14 +93,14 @@ export const demoSnapshot: MarketSnapshot = {
     availableUSDT: "1000000",
     evidence: [
       {
-        label: "PSM 예시 데이터",
+        label: "PSM sample data",
         url: "https://docs.usdd.io/",
         fetchedAt: fixtureTime,
       },
     ],
     warnings: [
-      "PSM 가용량과 수수료는 예시이며 실시간 경로를 검증한 값이 아닙니다.",
+      "PSM capacity and fees are illustrative, not a verified live route.",
     ],
   },
-  warnings: ["데모: 금리·유동성·비용은 예시 데이터입니다."],
+  warnings: ["DEMO: rates, liquidity, and costs are illustrative."],
 };

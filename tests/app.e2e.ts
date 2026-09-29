@@ -86,21 +86,25 @@ test("mocked wallet submission preserves exact preview and links a unique saved 
     r.fulfill({ json: { status: "confirmed", actualFeeTRX: "1" } }),
   );
   await page.goto("/");
-  await page.getByRole("button", { name: "실시간", exact: true }).click();
-  await page.getByRole("button", { name: "지갑 연결", exact: true }).click();
-  await page.getByRole("button", { name: "조건 확인하고 비교" }).click();
+  await page.getByRole("button", { name: "Live", exact: true }).click();
   await page
-    .getByRole("button", { name: "2. 예치 견적 확인", exact: true })
+    .getByRole("button", { name: "Connect wallet", exact: true })
+    .click();
+  await page.getByRole("button", { name: "Confirm and compare" }).click();
+  await page
+    .getByRole("button", { name: "2. Review supply quote", exact: true })
     .click();
   const dialog = page.getByRole("dialog");
   await expect(dialog).toBeVisible();
   await expect(dialog.getByText(owner, { exact: true })).toBeVisible();
   await dialog.getByRole("checkbox").check();
   await dialog
-    .getByRole("button", { name: "TronLink에서 서명하고 제출", exact: true })
+    .getByRole("button", { name: "Sign and submit in TronLink", exact: true })
     .click();
   await expect(
-    page.getByText("거래를 제출했습니다. 기록에서 상태를 확인해 주세요."),
+    page.getByText(
+      "Transaction submitted. Check its status in the transaction history.",
+    ),
   ).toBeVisible();
   const stored = await page.evaluate(() =>
     JSON.parse(localStorage.getItem("tron-treasury-copilot-history-v1")!),
@@ -112,8 +116,8 @@ test("mocked wallet submission preserves exact preview and links a unique saved 
   expect(
     stored.plans.find((p: any) => p.id === record.planId).plan.selectedPlanId,
   ).toBe("yield");
-  await page.getByRole("button", { name: "상태 확인", exact: true }).click();
-  await expect(page.getByText("확인됨", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Check status", exact: true }).click();
+  await expect(page.getByText("Verified", { exact: true })).toBeVisible();
 });
 
 test("confirmed demo plan compares alternatives, preserves reserved cash when dates advance, and saves", async ({
@@ -123,37 +127,41 @@ test("confirmed demo plan compares alternatives, preserves reserved cash when da
   page.on("pageerror", (error) => errors.push(error.message));
   await page.goto("/");
   await expect(
-    page.getByRole("heading", { name: "돈이 필요할 때, 준비된 자금." }),
+    page.getByRole("heading", { name: "Your money, ready when you need it." }),
   ).toBeVisible();
-  await expect(page.getByText("체험 데이터", { exact: true })).toBeVisible();
+  await expect(page.getByText("Demo data", { exact: true })).toBeVisible();
   const responsePromise = page.waitForResponse((r) =>
     r.url().endsWith("/api/plan"),
   );
-  await page.getByRole("button", { name: "조건 확인하고 비교" }).click();
+  await page.getByRole("button", { name: "Confirm and compare" }).click();
   const original = await (await responsePromise).json();
   expect(original.feasible).toBe(true);
   expect(original.plans.length).toBe(3);
   expect(original.reserveUSDT).toBe("4500.000000");
-  await expect(page.getByRole("heading", { name: "자금 배분" })).toBeVisible();
   await expect(
-    page.getByText("데모 모드에서는 거래를 준비하거나 서명할 수 없습니다."),
+    page.getByRole("heading", { name: "Capital allocation" }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("Transactions cannot be prepared or signed in demo mode."),
   ).toBeVisible();
   const advancePromise = page.waitForResponse((r) =>
     r.url().endsWith("/api/plan"),
   );
   await page
-    .getByRole("button", { name: "지출을 내일로", exact: true })
+    .getByRole("button", { name: "Expense due tomorrow", exact: true })
     .click();
   const advanced = await (await advancePromise).json();
   expect(advanced.plans.map((p: any) => p.allocations)).toEqual(
     original.plans.map((p: any) => p.allocations),
   );
-  await expect(page.getByText("가상 시나리오", { exact: true })).toBeVisible();
+  await expect(
+    page.getByText("Simulated scenario", { exact: true }),
+  ).toBeVisible();
   const extraPromise = page.waitForResponse((r) =>
     r.url().endsWith("/api/plan"),
   );
   await page
-    .getByRole("button", { name: "추가 지출 +3,000", exact: true })
+    .getByRole("button", { name: "Extra expense +3,000", exact: true })
     .click();
   const extra = await (await extraPromise).json();
   expect(extra.reserveUSDT).toBe("7500.000000");
@@ -162,31 +170,45 @@ test("confirmed demo plan compares alternatives, preserves reserved cash when da
   ).toBeLessThan(
     Number(original.plans.find((p: any) => p.id === "yield").investedUSDT),
   );
-  await page.getByRole("button", { name: "원래 조건", exact: true }).click();
-  await expect(page.getByText("가상 시나리오", { exact: true })).toHaveCount(0);
-  await page.getByRole("button", { name: "계획 저장", exact: true }).click();
-  await page.getByRole("button", { name: "포지션·회고", exact: true }).click();
-  await expect(page.getByText("데모 계획", { exact: true })).toBeVisible();
-  await expect(page.getByText("가상 회고", { exact: true })).toBeVisible();
+  await page
+    .getByRole("button", { name: "Original conditions", exact: true })
+    .click();
   await expect(
-    page.getByText("실제 포지션이나 실현 수익이 아닙니다.", { exact: false }),
+    page.getByText("Simulated scenario", { exact: true }),
+  ).toHaveCount(0);
+  await page.getByRole("button", { name: "Save plan", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Positions and review", exact: true })
+    .click();
+  await expect(page.getByText("Demo plan", { exact: true })).toBeVisible();
+  await expect(
+    page.getByText("Simulated review", { exact: true }),
   ).toBeVisible();
-  await page.getByLabel("회고 금리 비율").fill("1");
-  await page.getByLabel("회고 비용 비율").fill("1");
   await expect(
-    page.locator(".replay-results>div").filter({ hasText: "계획 대비 차이" }),
+    page.getByText("These are not real positions or realized returns.", {
+      exact: false,
+    }),
+  ).toBeVisible();
+  await page.getByLabel("Review rate multiplier").fill("1");
+  await page.getByLabel("Review cost multiplier").fill("1");
+  await expect(
+    page
+      .locator(".replay-results>div")
+      .filter({ hasText: "Difference from plan" }),
   ).toContainText("0.00");
   await page.reload();
-  await page.getByRole("button", { name: "포지션·회고", exact: true }).click();
-  await expect(page.getByText("데모 계획", { exact: true })).toBeVisible();
   await page
-    .getByRole("button", { name: "조건 불러오기", exact: true })
+    .getByRole("button", { name: "Positions and review", exact: true })
     .click();
-  await expect(page.getByLabel("총 계획 자금", { exact: true })).toHaveValue(
-    "10000",
-  );
+  await expect(page.getByText("Demo plan", { exact: true })).toBeVisible();
+  await page
+    .getByRole("button", { name: "Restore conditions", exact: true })
+    .click();
   await expect(
-    page.getByRole("button", { name: "계획 저장", exact: true }),
+    page.getByLabel("Total planned capital", { exact: true }),
+  ).toHaveValue("10000");
+  await expect(
+    page.getByRole("button", { name: "Save plan", exact: true }),
   ).toHaveCount(0);
   expect(errors).toEqual([]);
 });
@@ -195,14 +217,14 @@ test("unfunded expenses produce infeasible result, never a made-up investable pl
   page,
 }) => {
   await page.goto("/");
-  await page.getByLabel("총 계획 자금", { exact: true }).fill("2000");
+  await page.getByLabel("Total planned capital", { exact: true }).fill("2000");
   const response = page.waitForResponse((r) => r.url().endsWith("/api/plan"));
-  await page.getByRole("button", { name: "조건 확인하고 비교" }).click();
+  await page.getByRole("button", { name: "Confirm and compare" }).click();
   const data = await (await response).json();
   expect(data.feasible).toBe(false);
   expect(data.plans).toEqual([]);
   await expect(
-    page.getByRole("button", { name: "계획 저장", exact: true }),
+    page.getByRole("button", { name: "Save plan", exact: true }),
   ).toHaveCount(0);
 });
 
@@ -210,16 +232,16 @@ test("editing confirmed inputs invalidates execution and saving until recomputat
   page,
 }) => {
   await page.goto("/");
-  await page.getByRole("button", { name: "조건 확인하고 비교" }).click();
+  await page.getByRole("button", { name: "Confirm and compare" }).click();
   await expect(
-    page.getByRole("button", { name: "계획 저장", exact: true }),
+    page.getByRole("button", { name: "Save plan", exact: true }),
   ).toBeEnabled();
-  await page.getByLabel("비상금", { exact: true }).fill("900");
+  await page.getByLabel("Emergency reserve", { exact: true }).fill("900");
   await expect(
-    page.getByRole("button", { name: "계획 저장", exact: true }),
+    page.getByRole("button", { name: "Save plan", exact: true }),
   ).toBeDisabled();
   await expect(
-    page.getByText("조건이 변경되었습니다. 다시 계산해 주세요."),
+    page.getByText("Conditions changed. Please recalculate."),
   ).toBeVisible();
 });
 
@@ -230,18 +252,16 @@ test("live request failure stays live with no silent demo fallback", async ({
     route.fulfill({
       status: 502,
       contentType: "application/json",
-      body: JSON.stringify({ error: "실시간 데이터 검증 실패" }),
+      body: JSON.stringify({ error: "Live 데이터 검증 Failed" }),
     }),
   );
   await page.goto("/");
-  await page.getByRole("button", { name: "실시간", exact: true }).click();
+  await page.getByRole("button", { name: "Live", exact: true }).click();
   await expect(page.getByRole("alert")).toContainText(
-    "실시간 데이터 검증 실패",
+    "Live 데이터 검증 Failed",
   );
-  await expect(
-    page.getByText("실시간 데이터 모드", { exact: true }),
-  ).toBeVisible();
-  await expect(page.getByText("체험 데이터", { exact: true })).toHaveCount(0);
+  await expect(page.getByText("Live data mode", { exact: true })).toBeVisible();
+  await expect(page.getByText("Demo data", { exact: true })).toHaveCount(0);
 });
 
 test("late calculation response cannot confirm inputs changed while request was pending", async ({
@@ -257,19 +277,21 @@ test("late calculation response cannot confirm inputs changed while request was 
   });
   await page.goto("/");
   const requested = page.waitForRequest((r) => r.url().endsWith("/api/plan"));
-  await page.getByRole("button", { name: "조건 확인하고 비교" }).click();
+  await page.getByRole("button", { name: "Confirm and compare" }).click();
   await requested;
-  await page.getByLabel("비상금", { exact: true }).fill("9500");
+  await page.getByLabel("Emergency reserve", { exact: true }).fill("9500");
   release();
   await expect(
     page.getByText(
-      "계산 중 조건이 바뀌었습니다. 변경한 조건을 다시 확인해 주세요.",
+      "Conditions changed during calculation. Please review the updated inputs.",
     ),
   ).toBeVisible();
   await expect(
-    page.getByRole("button", { name: "계획 저장", exact: true }),
+    page.getByRole("button", { name: "Save plan", exact: true }),
   ).toHaveCount(0);
-  await expect(page.getByLabel("비상금", { exact: true })).toHaveValue("9500");
+  await expect(
+    page.getByLabel("Emergency reserve", { exact: true }),
+  ).toHaveValue("9500");
 });
 
 test("no configured AI is honestly manual and preserves editable conditions", async ({
@@ -287,21 +309,25 @@ test("no configured AI is honestly manual and preserves editable conditions", as
     }),
   );
   await page.goto("/");
-  await page.getByRole("button", { name: "조건 해석", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Interpret request", exact: true })
+    .click();
   await expect(
-    page.getByText("AI 미연결 · 직접 입력", { exact: true }),
+    page.getByText("AI not connected · manual input", { exact: true }),
   ).toBeVisible();
-  await expect(page.getByLabel("총 계획 자금", { exact: true })).toHaveValue(
-    "10000",
-  );
+  await expect(
+    page.getByLabel("Total planned capital", { exact: true }),
+  ).toHaveValue("10000");
 });
 
 test("desktop and mobile visual check; no horizontal overflow", async ({
   page,
 }) => {
   await page.goto("/");
-  await page.getByRole("button", { name: "조건 확인하고 비교" }).click();
-  await expect(page.getByRole("heading", { name: "자금 배분" })).toBeVisible();
+  await page.getByRole("button", { name: "Confirm and compare" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Capital allocation" }),
+  ).toBeVisible();
   await page.evaluate(() => window.scrollTo(0, 0));
   await page.screenshot({
     path: "docs/screenshots/desktop.png",
@@ -320,9 +346,11 @@ test("desktop and mobile visual check; no horizontal overflow", async ({
     fullPage: true,
     animations: "disabled",
   });
-  await page.getByRole("button", { name: "상품·데이터", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Products and data", exact: true })
+    .click();
   await expect(
-    page.getByRole("heading", { name: "연동 상품과 회수 조건" }),
+    page.getByRole("heading", { name: "Products and exit conditions" }),
   ).toBeVisible();
   expect(
     await page.evaluate(

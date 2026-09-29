@@ -25,19 +25,19 @@ export function ReviewSimulation({
       <div className="section-heading">
         <h2>
           <FlaskConical size={18} />
-          예상과 결과, 무엇이 달라졌을까요?
+          What changed from the original plan?
         </h2>
-        <span className="tag">가상 회고</span>
+        <span className="tag">Simulated review</span>
       </div>
       <p className="small muted">
-        현재 선택한 배분을 유지한 채 금리·비용이 달라진 경우를 재생합니다. 실제
-        포지션이나 실현 수익이 아닙니다.
+        Replay the selected allocation with different rates and costs. These are
+        not real positions or realized returns.
       </p>
       <div className="replay-controls">
         <label>
-          금리 변화 <strong>{Math.round(rate * 100)}%</strong>
+          Rate multiplier <strong>{Math.round(rate * 100)}%</strong>
           <input
-            aria-label="회고 금리 비율"
+            aria-label="Review rate multiplier"
             type="range"
             min="0"
             max="2"
@@ -47,9 +47,9 @@ export function ReviewSimulation({
           />
         </label>
         <label>
-          비용 변화 <strong>{Math.round(cost * 100)}%</strong>
+          Cost multiplier <strong>{Math.round(cost * 100)}%</strong>
           <input
-            aria-label="회고 비용 비율"
+            aria-label="Review cost multiplier"
             type="range"
             min="0"
             max="3"
@@ -61,21 +61,21 @@ export function ReviewSimulation({
       </div>
       <div className="replay-results">
         <div>
-          <span>원래 계획 순수익</span>
+          <span>Original estimated net return</span>
           <strong>
             {show(replay.expectedNetUSDT)}
             <small> USDT</small>
           </strong>
         </div>
         <div>
-          <span>가상 결과 순수익</span>
+          <span>Simulated net return</span>
           <strong>
             {show(replay.simulatedNetUSDT)}
             <small> USDT</small>
           </strong>
         </div>
         <div>
-          <span>계획 대비 차이</span>
+          <span>Difference from plan</span>
           <strong className={Number(replay.deltaUSDT) < 0 ? "negative" : ""}>
             {show(replay.deltaUSDT)}
             <small> USDT</small>
@@ -83,8 +83,8 @@ export function ReviewSimulation({
         </div>
       </div>
       <p className="small muted">
-        금리·비용을 모두 100%로 되돌리면 원래 계획과 같은 결과가 나옵니다. 추가
-        입출금·디페그·손실은 이 시나리오에 포함하지 않습니다.
+        Reset both multipliers to 100% to reproduce the original plan.
+        Additional cash flows, depegging, and losses are outside this scenario.
       </p>
     </section>
   );

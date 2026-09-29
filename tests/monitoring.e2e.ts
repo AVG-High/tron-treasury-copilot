@@ -103,28 +103,34 @@ test("live observation flags reserve and exit risks, keeps balance changes disti
     if (r.url().includes("/api/transactions")) transactionRequests++;
   });
   await page.goto("/");
-  await page.getByRole("button", { name: "실시간", exact: true }).click();
-  await page.getByRole("button", { name: "지갑 연결", exact: true }).click();
-  await page.getByRole("button", { name: "조건 확인하고 비교" }).click();
-  await page.getByRole("button", { name: "포지션·회고", exact: true }).click();
-  const panel = page.getByRole("region", { name: "실시간 계획 관측" });
+  await page.getByRole("button", { name: "Live", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Connect wallet", exact: true })
+    .click();
+  await page.getByRole("button", { name: "Confirm and compare" }).click();
+  await page
+    .getByRole("button", { name: "Positions and review", exact: true })
+    .click();
+  const panel = page.getByRole("region", { name: "Live plan monitoring" });
   await expect(
-    panel.getByLabel("자동 조회", { exact: true }),
+    panel.getByLabel("Auto-refresh", { exact: true }),
   ).not.toBeChecked();
-  await panel.getByRole("button", { name: "지금 관측" }).click();
+  await panel.getByRole("button", { name: "Check now" }).click();
   await expect(panel.getByText(/504\.000000 USDT 적습니다/)).toBeVisible();
   await expect(
     panel.getByText(/시장 현금이 현재 보유 포지션 수량보다 적습니다/),
   ).toBeVisible();
   await expect(panel.getByText(/지급 예정일이 도래했습니다/)).toBeVisible();
-  await expect(panel.getByText(/계획 경과 8일 \/ 잔여 22일/)).toBeVisible();
-  await expect(panel.getByRole("table")).toContainText("JustLend USDT");
-  await panel.getByLabel("자동 조회 주기").selectOption("60000");
-  await panel.getByRole("button", { name: "지금 관측" }).click();
   await expect(
-    panel.getByText("USDT 포지션 평가액 변화", { exact: false }),
+    panel.getByText(/Elapsed 8 days \/ Remaining 22 days/),
   ).toBeVisible();
-  await expect(panel.getByText(/실제 순수익: 산출 불가/)).toBeVisible();
+  await expect(panel.getByRole("table")).toContainText("JustLend USDT");
+  await panel.getByLabel("Auto-refresh interval").selectOption("60000");
+  await panel.getByRole("button", { name: "Check now" }).click();
+  await expect(
+    panel.getByText("USDT position value change", { exact: false }),
+  ).toBeVisible();
+  await expect(panel.getByText(/Actual net profit: unavailable/)).toBeVisible();
   const journal = await page.evaluate(() =>
     JSON.parse(localStorage.getItem("tron-treasury-copilot-observations-v1")!),
   );
@@ -140,12 +146,12 @@ test("live observation flags reserve and exit risks, keeps balance changes disti
     fullPage: true,
     animations: "disabled",
   });
-  await panel.getByRole("button", { name: "남은 기간 조건 검토" }).click();
-  await expect(page.getByLabel("총 계획 자금", { exact: true })).toHaveValue(
-    "10000",
-  );
+  await panel.getByRole("button", { name: "Review remaining horizon" }).click();
   await expect(
-    page.getByRole("button", { name: "계획 저장", exact: true }),
+    page.getByLabel("Total planned capital", { exact: true }),
+  ).toHaveValue("10000");
+  await expect(
+    page.getByRole("button", { name: "Save plan", exact: true }),
   ).toHaveCount(0);
   expect(transactionRequests).toBe(0);
   expect(errors).toEqual([]);
@@ -166,25 +172,31 @@ test("turning polling off discards an in-flight response and never recreates the
     await route.fulfill({ json: latest() }).catch(() => {});
   });
   await page.goto("/");
-  await page.getByRole("button", { name: "실시간", exact: true }).click();
-  await page.getByRole("button", { name: "조건 확인하고 비교" }).click();
-  await page.getByRole("button", { name: "포지션·회고", exact: true }).click();
-  const panel = page.getByRole("region", { name: "실시간 계획 관측" });
+  await page.getByRole("button", { name: "Live", exact: true }).click();
+  await page.getByRole("button", { name: "Confirm and compare" }).click();
+  await page
+    .getByRole("button", { name: "Positions and review", exact: true })
+    .click();
+  const panel = page.getByRole("region", { name: "Live plan monitoring" });
   const requested = page.waitForRequest((r) =>
     r.url().endsWith("/api/markets?mode=live"),
   );
-  await panel.getByLabel("자동 조회", { exact: true }).check();
+  await panel.getByLabel("Auto-refresh", { exact: true }).check();
   await requested;
-  await panel.getByLabel("자동 조회", { exact: true }).uncheck();
+  await panel.getByLabel("Auto-refresh", { exact: true }).uncheck();
   release();
-  await expect(panel.getByRole("button", { name: "지금 관측" })).toBeEnabled();
-  await expect(panel.getByText(/최근 관측/)).toHaveCount(0);
-  await page.getByRole("button", { name: "자금 계획", exact: true }).click();
-  await page.getByLabel("비상금", { exact: true }).fill("1000");
-  await page.getByRole("button", { name: "포지션·회고", exact: true }).click();
+  await expect(panel.getByRole("button", { name: "Check now" })).toBeEnabled();
+  await expect(panel.getByText(/Last observation/)).toHaveCount(0);
+  await page
+    .getByRole("button", { name: "Treasury plan", exact: true })
+    .click();
+  await page.getByLabel("Emergency reserve", { exact: true }).fill("1000");
+  await page
+    .getByRole("button", { name: "Positions and review", exact: true })
+    .click();
   await expect(panel).toHaveCount(0);
   await expect(
-    page.getByText(/계획 변화 관측은 실시간 모드에서 조건을 확인/),
+    page.getByText(/Plan monitoring is available after confirming conditions/),
   ).toBeVisible();
 });
 
@@ -210,20 +222,22 @@ test("restoring an expired plan retains liabilities and requires a new horizon",
     saved,
   );
   await page.goto("/");
-  await page.getByRole("button", { name: "포지션·회고", exact: true }).click();
   await page
-    .getByRole("button", { name: "조건 불러오기", exact: true })
+    .getByRole("button", { name: "Positions and review", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Restore conditions", exact: true })
     .click();
   await expect(
-    page.getByLabel("남는 돈 운용 기간", { exact: true }),
+    page.getByLabel("Investment horizon", { exact: true }),
   ).toHaveValue("0");
-  await expect(page.getByText(/원래 운용 기간이 끝났습니다/)).toBeVisible();
+  await expect(page.getByText(/The original horizon has ended/)).toBeVisible();
   const rejected = page.waitForResponse((r) => r.url().endsWith("/api/plan"));
-  await page.getByRole("button", { name: "조건 확인하고 비교" }).click();
+  await page.getByRole("button", { name: "Confirm and compare" }).click();
   expect((await rejected).status()).toBe(400);
-  await page.getByLabel("남는 돈 운용 기간", { exact: true }).fill("30");
+  await page.getByLabel("Investment horizon", { exact: true }).fill("30");
   const response = page.waitForResponse((r) => r.url().endsWith("/api/plan"));
-  await page.getByRole("button", { name: "조건 확인하고 비교" }).click();
+  await page.getByRole("button", { name: "Confirm and compare" }).click();
   const calculated = await (await response).json();
   expect(calculated.reserveUSDT).toBe("4500.000000");
   expect(

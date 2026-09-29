@@ -20,7 +20,7 @@ import { startMonitorLoop } from "./monitor-loop";
 type Report = ReturnType<typeof monitorPlan>;
 const show = (value: string | null, digits = 6) =>
   value === null
-    ? "확인 불가"
+    ? "Unavailable"
     : Number(value).toLocaleString("en-US", { maximumFractionDigits: digits });
 
 export function MonitoringPanel({
@@ -71,7 +71,7 @@ export function MonitoringPanel({
           undefined,
           controller.signal,
         );
-        if (!current) throw new Error("관측이 중지되었습니다.");
+        if (!current) throw new Error("Monitoring stopped.");
         const observed = owner
           ? observedWalletSchema.parse(
               await api<WalletState>(
@@ -82,7 +82,9 @@ export function MonitoringPanel({
             )
           : null;
         if (observed && observed.address !== owner)
-          throw new Error("조회한 지갑이 관측 대상과 다릅니다.");
+          throw new Error(
+            "The retrieved wallet differs from the monitored wallet.",
+          );
         const now = Date.now();
         const next = monitorPlan({
           original: result,
@@ -116,7 +118,8 @@ export function MonitoringPanel({
         } catch (e) {
           setJournal((j) => ({
             ...j,
-            error: e instanceof Error ? e.message : "관측 기록 저장 실패",
+            error:
+              e instanceof Error ? e.message : "Failed to save observations",
           }));
         }
       }
@@ -124,7 +127,7 @@ export function MonitoringPanel({
     const onError = (e: unknown, failures = 1) => {
       if (!current) return;
       setError(
-        `${e instanceof Error ? e.message : "관측 실패"}${enabled ? ` (${failures}/3회)` : ""}`,
+        `${e instanceof Error ? e.message : "Observation failed"}${enabled ? ` (${failures}/3 failures)` : ""}`,
       );
     };
     if (!enabled) {
@@ -178,29 +181,32 @@ export function MonitoringPanel({
   const stale = !!report && viewTime - Date.parse(report.checkedAt) > 300_000;
   const proposal = report?.proposal;
   return (
-    <section className="card monitoring-panel" aria-label="실시간 계획 관측">
+    <section
+      className="card monitoring-panel"
+      aria-label="Live plan monitoring"
+    >
       <div className="section-heading">
         <h2>
-          <Activity size={18} /> 계획 변화 관측
+          <Activity size={18} /> Monitor plan changes
         </h2>
         <span className="tag">
           {paused
-            ? "거래 작업 중 일시 정지"
+            ? "Paused during transaction"
             : enabled
-              ? "자동 조회 중"
-              : "자동 조회 꺼짐"}
+              ? "Auto-refresh active"
+              : "Auto-refresh off"}
         </span>
       </div>
       <p className="small muted">
-        실시간 금리·회수 유동성·예약금을 원래 계획과 비교합니다. 이 브라우저가
-        보이는 동안만 조회하며, 새로고침 후에는 꺼집니다. 자금 이동 없이 검토할
-        조건을 제안합니다.
+        Compare live rates, withdrawal liquidity, and reserves with the original
+        plan. Runs only while this browser is visible and resets to off on
+        reload. Suggests conditions to review without moving funds.
       </p>
-      {owner && <p className="wallet-address">관측 지갑 {owner}</p>}
+      {owner && <p className="wallet-address">Monitored wallet {owner}</p>}
       {!owner && (
         <p className="small muted">
-          현재는 상품 조건만 관측합니다. 지갑 연결 후에는 예약금과 포지션도
-          확인할 수 있습니다.
+          Currently monitoring product conditions only. Connect a wallet to
+          include reserves and positions.
         </p>
       )}
       <div className="monitor-controls">
@@ -211,19 +217,19 @@ export function MonitoringPanel({
             disabled={paused}
             onChange={(e) => setEnabled(e.target.checked)}
           />{" "}
-          자동 조회
+          Auto-refresh
         </label>
         <label>
-          주기{" "}
+          Interval{" "}
           <select
-            aria-label="자동 조회 주기"
+            aria-label="Auto-refresh interval"
             value={intervalMs}
             disabled={paused}
             onChange={(e) => setIntervalMs(Number(e.target.value))}
           >
-            <option value={60_000}>1분</option>
-            <option value={300_000}>5분</option>
-            <option value={900_000}>15분</option>
+            <option value={60_000}>1 minute</option>
+            <option value={300_000}>5 minutes</option>
+            <option value={900_000}>15 minutes</option>
           </select>
         </label>
         <button
@@ -232,29 +238,30 @@ export function MonitoringPanel({
           onClick={() => setRequestId((n) => n + 1)}
         >
           <RefreshCw size={14} />
-          지금 관측
+          Check now
         </button>
       </div>
       <p className="small muted">
-        연속 실패 시 간격을 늘리고 3회 실패하면 멈춥니다. 현재 조회 상태:{" "}
-        {querying ? "조회 중" : "대기"}.
+        Slows down after failures and stops after 3 consecutive failures. Query
+        status: {querying ? "Checking" : "Idle"}.
       </p>
       {error && (
         <p className="inline-warning" role="status">
-          {error} 이전 성공 결과를 최신 값으로 사용하지 마세요.
+          {error} Do not treat an earlier successful result as current data.
         </p>
       )}
       {stale && (
         <p className="inline-warning">
-          마지막 관측 이후 5분이 지났습니다. 재검토하려면 새로 조회해 주세요.
+          The last observation is over 5 minutes old. Refresh before reviewing.
         </p>
       )}
       {report && (
         <>
           <p className="small muted">
-            최근 관측 {new Date(report.checkedAt).toLocaleString("ko-KR")} ·
-            계획 경과 {report.elapsedDays ?? "확인 불가"}일 / 잔여{" "}
-            {report.remainingDays ?? "확인 불가"}일
+            Last observation{" "}
+            {new Date(report.checkedAt).toLocaleString("en-US")} · Elapsed{" "}
+            {report.elapsedDays ?? "Unavailable"} days / Remaining{" "}
+            {report.remainingDays ?? "Unavailable"} days
           </p>
           <div className="monitor-alerts" aria-live="polite">
             {report.alerts.map((alert, index) => (
@@ -268,20 +275,20 @@ export function MonitoringPanel({
           </div>
           {report.reserve && (
             <p className="inline-warning">
-              예약금·비용 필요액 {show(report.reserve.requiredUSDT, 2)} USDT ·
-              지갑 {show(report.reserve.walletUSDT, 2)} USDT · 부족액{" "}
-              {show(report.reserve.shortfallUSDT, 2)} USDT
+              Required reserves and costs {show(report.reserve.requiredUSDT, 2)}{" "}
+              USDT · Wallet {show(report.reserve.walletUSDT, 2)} USDT ·
+              Shortfall {show(report.reserve.shortfallUSDT, 2)} USDT
             </p>
           )}
           {report.rateComparisons.length > 0 && (
             <div className="table-scroll">
-              <table aria-label="동일 원금과 기간의 기본 이자 비교">
+              <table aria-label="Base interest with the same principal and horizon">
                 <thead>
                   <tr>
-                    <th>전략</th>
-                    <th>계획 당시 기본 이자</th>
-                    <th>현재 금리 가정</th>
-                    <th>예상 차이</th>
+                    <th>Strategy</th>
+                    <th>Original base interest</th>
+                    <th>At current rates</th>
+                    <th>Estimated difference</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -292,8 +299,8 @@ export function MonitoringPanel({
                           ? "JustLend USDT"
                           : "JustLend USDD"}
                         <small>
-                          동일 원금 {show(rate.principalUSDT, 2)} /{" "}
-                          {rate.originalHorizonDays}일
+                          Same principal {show(rate.principalUSDT, 2)} /{" "}
+                          {rate.originalHorizonDays} days
                         </small>
                       </td>
                       <td>{show(rate.originalBaseYieldUSDT)} USDT</td>
@@ -306,8 +313,9 @@ export function MonitoringPanel({
             </div>
           )}
           <p className="small muted">
-            금리 비교는 같은 원금·원래 전체 기간에 대한 가정입니다. 이미 발생한
-            이자·순수익이 아니며, 인센티브·거래 비용은 이 표에서 제외합니다.
+            Compares rates using the same principal and original full horizon.
+            Not accrued interest or net profit. Incentives and transaction costs
+            are excluded.
           </p>
           <button
             className="secondary"
@@ -319,36 +327,38 @@ export function MonitoringPanel({
               }
             }}
           >
-            남은 기간 조건 검토
+            Review remaining horizon
           </button>
           <p className="small muted">
-            원래 계획 자금을 기준으로 입력을 열어 줍니다. 실제 가용 자금·지급
-            완료 지출을 직접 수정하고 다시 계산해야 합니다. 만기가 지난 지출도
-            자동으로 사용 완료 처리하지 않습니다.
+            Opens inputs using the original capital. Update available funds and
+            paid expenses, then recalculate. Past-due expenses are not
+            automatically marked as paid.
           </p>
         </>
       )}
       <div className="monitor-ledger">
-        <h3>포지션 관측 기록</h3>
+        <h3>Position observations</h3>
         <p className="small muted">
-          최근 96회 관측을 이 브라우저에 저장합니다. 외부 앱 입출금과 토큰 이전
-          내역 전체를 수집한 원장이 아니므로 실제 순수익은 계산하지 않습니다.
+          Stores the latest 96 observations in this browser. This is not a full
+          ledger of external cash flows and token transfers, so actual net
+          profit is not calculated.
         </p>
         <p className="small">
-          실제 순수익: 산출 불가 · 외부 입출금·비용 전체 확인 필요
+          Actual net profit: unavailable · requires all external cash flows and
+          costs
         </p>
         {journal.error && <p className="inline-warning">{journal.error}</p>}
         {movement?.status === "comparable" ? (
           movement.positions.map((p) => (
             <div className="position-row" key={p.marketId}>
               <div>
-                {p.asset} 포지션 평가액 변화
+                {p.asset} position value change
                 <small>
                   {p.sharesChanged === null
-                    ? "한 관측에 없는 포지션 · 수량 비교 불가"
+                    ? "Position missing from one observation · amounts cannot be compared"
                     : p.sharesChanged
-                      ? "jToken 수량 변화 있음 · 입출금/이전 구분 필요"
-                      : "두 관측의 jToken 수량 동일 · 중간 거래는 미확인"}
+                      ? "jToken amount changed · distinguish deposits, withdrawals, and transfers"
+                      : "Same jToken amount in both observations · intervening activity unknown"}
                 </small>
               </div>
               <strong>
@@ -358,7 +368,8 @@ export function MonitoringPanel({
           ))
         ) : (
           <p className="small muted">
-            {movement?.reason ?? "같은 지갑의 유효한 관측이 두 번 필요합니다."}
+            {movement?.reason ??
+              "Two valid observations of the same wallet are required."}
           </p>
         )}
         {movement?.warnings.map((warning, index) => (
@@ -380,10 +391,10 @@ export function MonitoringPanel({
             )
           }
         >
-          <Download size={14} /> 관측 기록 내보내기
+          <Download size={14} /> Export observations
         </button>
         <p className="small muted">
-          내보낸 파일에는 지갑 주소와 잔고가 포함됩니다.
+          Exports include wallet addresses and balances.
         </p>
       </div>
     </section>

@@ -17,7 +17,7 @@ export async function api<T>(
     throw new Error(
       typeof data.error === "string"
         ? data.error
-        : "요청을 처리하지 못했습니다. 잠시 후 다시 시도해 주세요.",
+        : "Unable to process the request. Please try again shortly.",
     );
   return data as T;
 }

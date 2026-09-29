@@ -52,7 +52,7 @@ describe("explicit confirmation of incomplete AI conditions", () => {
       "이 버전은 레버리지를 지원하지 않습니다.",
     ]);
     expect(getIntentReviewRequirements(result).missingLabels).toContain(
-      "차입·레버리지 제외",
+      "Exclude borrowing and leverage",
     );
     expect(isIntentReviewComplete(result, false)).toBe(false);
   });
@@ -68,7 +68,9 @@ describe("explicit confirmation of incomplete AI conditions", () => {
   });
 
   it("does not alter the extracted draft or its provider questions", () => {
-    const result = extracted({ capitalUSDT: "2000" }, ["비상금은 얼마인가요?"]);
+    const result = extracted({ capitalUSDT: "2000" }, [
+      "Emergency reserve은 얼마인가요?",
+    ]);
     const before = structuredClone(result);
     getIntentReviewRequirements(result).questions.push("local addition");
     expect(result).toEqual(before);

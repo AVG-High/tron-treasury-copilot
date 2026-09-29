@@ -49,7 +49,7 @@ export function readHistory(): {
       plans: [],
       transactions: [],
       error:
-        "브라우저 기록을 읽을 수 없습니다. 기존 데이터를 보존하기 위해 저장을 중지했습니다.",
+        "Browser history could not be read. Saving is paused to preserve existing data.",
     };
   }
 }
@@ -77,7 +77,7 @@ export function toSavedPlan(result: PlanningResult, plan: Plan): SavedPlan {
     investedUSDT: plan.investedUSDT,
     expectedNetUSDT: plan.netYieldUSDT,
     horizonDays: result.intent.horizonDays,
-    assumptions: `수익률 유지 가정 · 비용 ${result.costs.source === "user-assumption" ? "사용자 가정" : "지갑 추정"} · 보상 ${result.costs.includeIncentives ? "포함" : "제외"}`,
+    assumptions: `Assumes unchanged rates · costs ${result.costs.source === "user-assumption" ? "User assumption" : "Wallet estimate"} · incentives ${result.costs.includeIncentives ? "included" : "excluded"}`,
     plan: { ...result, selectedPlanId: plan.id },
   };
 }

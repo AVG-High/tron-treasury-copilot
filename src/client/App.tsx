@@ -57,14 +57,14 @@ const money = (value: string | number | undefined, digits = 2) =>
     maximumFractionDigits: digits,
   });
 const pct = (value: string | null) =>
-  value === null ? "확인 불가" : `${money(Number(value) * 100)}%`;
+  value === null ? "Unavailable" : `${money(Number(value) * 100)}%`;
 const labels: Record<string, string> = {
-  wallet: "USDT 지갑 보유",
+  wallet: "USDT in wallet",
   "justlend-usdt": "JustLend · USDT",
-  "justlend-usdd": "USDD 전환 + JustLend",
+  "justlend-usdd": "USDD conversion + JustLend",
 };
 const sample =
-  "10,000 USDT가 있어요. 7일 뒤 3,000 USDT, 30일 뒤 1,000 USDT가 필요하고 비상금은 500 USDT 남겨주세요. 남은 돈은 30일간 운용하고, USDD는 전체 자금의 20% 이내로 제한해주세요. 레버리지는 쓰지 않을게요.";
+  "I have 10,000 USDT. I need 3,000 in 7 days and 1,000 in 30 days. Keep 500 as an emergency reserve. Invest the remainder for 30 days, limit USDD to 20% of my total capital, and use no leverage.";
 type Tab = "plan" | "markets" | "review";
 
 export default function App() {
@@ -158,7 +158,7 @@ export default function App() {
       setHistory((h) => ({
         ...h,
         error:
-          "브라우저 저장 공간을 사용할 수 없습니다. 현재 기록은 JSON으로 내보낼 수 있습니다.",
+          "Browser storage is unavailable. You can export the current records as JSON.",
       }));
     }
   }, [history]);
@@ -171,7 +171,7 @@ export default function App() {
     try {
       await fn();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "요청에 실패했습니다.");
+      setError(e instanceof Error ? e.message : "Request failed.");
     } finally {
       pendingRef.current = false;
       setBusy("");
@@ -180,7 +180,7 @@ export default function App() {
   async function calculate(input = intent, stress = "") {
     if (!isIntentReviewComplete(parse, aiConditionsReviewed))
       throw new Error(
-        "AI가 확인하지 못한 조건과 질문을 검토하고 현재 입력값 사용에 동의해 주세요.",
+        "Review the missing AI conditions and questions, then confirm the current inputs.",
       );
     const revision = inputRevision.current;
     const output = await api<PlanningResult>("/plan", {
@@ -190,7 +190,7 @@ export default function App() {
     });
     if (revision !== inputRevision.current) {
       setNotice(
-        "계산 중 조건이 바뀌었습니다. 변경한 조건을 다시 확인해 주세요.",
+        "Conditions changed during calculation. Please review the updated inputs.",
       );
       return;
     }
@@ -206,12 +206,12 @@ export default function App() {
     setPreview(null);
   }
   async function parseIntent() {
-    await run("조건 해석", async () => {
+    await run("Interpret request", async () => {
       const revision = inputRevision.current;
       const value = await api<ParseResult>("/intent", { text });
       if (revision !== inputRevision.current)
         throw new Error(
-          "해석 중 입력이 바뀌었습니다. 새 입력으로 다시 해석해 주세요.",
+          "Inputs changed during interpretation. Please interpret the new request again.",
         );
       setParse(value);
       if (value.source === "ai") {
@@ -221,7 +221,7 @@ export default function App() {
     });
   }
   async function connect() {
-    await run("지갑 연결", async () => {
+    await run("Connect wallet", async () => {
       const address = await connectWallet();
       setWallet(await api<WalletState>(`/wallet/${address}`));
       setPreview(null);
@@ -236,7 +236,7 @@ export default function App() {
     if (!result || !plan || !confirmed || history.error) return;
     const saved = toSavedPlan(result, plan);
     setHistory((h) => ({ ...h, plans: [saved, ...h.plans] }));
-    setNotice("현재 계획과 계산 가정을 이 브라우저에 저장했습니다.");
+    setNotice("Saved this plan and its assumptions in this browser.");
   }
   function loadExample(shortTerm: boolean) {
     intentDirty();
@@ -256,18 +256,18 @@ export default function App() {
     setMode("demo");
     setText(
       shortTerm
-        ? "2,000 USDT를 7일간 운용하고 싶어요. 예정 지출과 비상금은 없고, USDD와 변동성 자산 및 레버리지는 사용하지 않습니다. JustLend 비중은 100%까지 허용해요."
+        ? "I have 2,000 USDT to invest for 7 days, with no scheduled expenses or emergency reserve. No USDD, volatile assets, or leverage. Allow up to 100% exposure to JustLend."
         : sample,
     );
     setNotice(
-      "데모 예시를 불러왔습니다. 아래 금액·기간·비용 가정을 확인한 후 비교 버튼을 눌러주세요.",
+      "Demo example loaded. Review the amounts, timing, and cost assumptions, then compare plans.",
     );
   }
   async function prepare(action: TransactionAction, resetAllowance = false) {
-    await run("거래 준비", async () => {
+    await run("Preparing transaction", async () => {
       const revision = inputRevision.current;
       if (mode !== "live" || !wallet)
-        throw new Error("실시간 모드에서 지갑을 먼저 연결해 주세요.");
+        throw new Error("Connect your wallet in live mode first.");
       await assertWallet(wallet.address);
       const amount = resetAllowance
         ? "0"
@@ -276,13 +276,15 @@ export default function App() {
           : plan?.allocations.find((a) => a.strategy === "justlend-usdt")
               ?.amountUSDT;
       if (!amount || (!resetAllowance && new Decimal(amount).lte(0)))
-        throw new Error("거래할 USDT 금액을 확인해 주세요.");
+        throw new Error("Check the USDT transaction amount.");
       if (
         action !== "withdraw-usdt" &&
         !resetAllowance &&
         (!confirmed || !result || stressNote)
       )
-        throw new Error("최신 조건을 확인하고 기본 계획을 다시 계산해 주세요.");
+        throw new Error(
+          "Confirm the latest conditions and recalculate the base plan.",
+        );
       const current = await api<WalletState>(`/wallet/${wallet.address}`);
       setWallet(current);
       if (
@@ -291,7 +293,7 @@ export default function App() {
         new Decimal(current.usdt).minus(amount).lt(result.reserveUSDT)
       )
         throw new Error(
-          "이 거래를 실행하면 지갑의 예정 지출·비상금이 부족합니다. 자금 계획을 수정해 주세요.",
+          "This transaction would leave insufficient funds for expenses and reserves. Update your plan.",
         );
       const value = await api<TransactionPreview>("/transactions/prepare", {
         action,
@@ -309,7 +311,7 @@ export default function App() {
       });
       if (revision !== inputRevision.current)
         throw new Error(
-          "거래 준비 중 조건이나 배분안이 바뀌었습니다. 다시 준비해 주세요.",
+          "Conditions or allocation changed while preparing the transaction. Prepare it again.",
         );
       previewRevision.current = revision;
       previewPlanId.current = undefined;
@@ -327,10 +329,10 @@ export default function App() {
   }
   async function execute() {
     if (!preview || !previewConsent) return;
-    await run("지갑 서명", async () => {
+    await run("Wallet signature", async () => {
       if (mode !== "live" || previewRevision.current !== inputRevision.current)
         throw new Error(
-          "거래 준비 이후 조건이 바뀌었습니다. 다시 준비해 주세요.",
+          "Conditions changed after preparation. Prepare the transaction again.",
         );
       if (preview.action === "supply-usdt" && result) {
         const fresh = await api<WalletState>(`/wallet/${preview.owner}`);
@@ -341,11 +343,13 @@ export default function App() {
             .lt(new Decimal(result.reserveUSDT).plus(plan?.costUSDT ?? "0"))
         )
           throw new Error(
-            "지갑 잔고가 변경되어 예약 자금을 지킬 수 없습니다. 거래를 다시 준비해 주세요.",
+            "The wallet balance changed and no longer covers reserved funds. Prepare the transaction again.",
           );
       }
       if (previewRevision.current !== inputRevision.current)
-        throw new Error("검증 중 조건이 바뀌었습니다. 다시 준비해 주세요.");
+        throw new Error(
+          "Conditions changed during validation. Prepare the transaction again.",
+        );
       let signedId = "";
       try {
         await signAndBroadcast(preview, (txid) => {
@@ -366,14 +370,20 @@ export default function App() {
           }));
           const latest = readHistory();
           if (latest.error)
-            throw new Error("거래 기록을 보존할 수 없어 전송하지 않았습니다.");
+            throw new Error(
+              "Transaction not sent because its record could not be preserved.",
+            );
           try {
             writeHistory(latest.plans, [record, ...latest.transactions]);
           } catch {
-            throw new Error("거래 기록을 저장하지 못해 전송하지 않았습니다.");
+            throw new Error(
+              "Transaction not sent because its record could not be saved.",
+            );
           }
         });
-        setNotice("거래를 제출했습니다. 기록에서 상태를 확인해 주세요.");
+        setNotice(
+          "Transaction submitted. Check its status in the transaction history.",
+        );
         setPreview(null);
         setTab("review");
       } catch (e) {
@@ -392,7 +402,7 @@ export default function App() {
     });
   }
   async function refreshTransaction(record: TransactionRecord) {
-    await run("거래 확인", async () => {
+    await run("Checking transaction", async () => {
       const status = await api<{
         status: TransactionRecord["status"];
         actualFeeTRX?: string;
@@ -426,7 +436,7 @@ export default function App() {
           href="#"
           className="brand"
           onClick={() => setTab("plan")}
-          aria-label="Treasury 홈"
+          aria-label="Treasury home"
         >
           <span className="brand-mark">
             <Layers3 size={23} />
@@ -443,9 +453,9 @@ export default function App() {
         <nav>
           {(
             [
-              { id: "plan", label: "자금 계획", icon: Layers3 },
-              { id: "markets", label: "상품·데이터", icon: BarChart3 },
-              { id: "review", label: "포지션·회고", icon: Clock3 },
+              { id: "plan", label: "Treasury plan", icon: Layers3 },
+              { id: "markets", label: "Products and data", icon: BarChart3 },
+              { id: "review", label: "Positions and review", icon: Clock3 },
             ] as const
           ).map((n) => (
             <button
@@ -464,14 +474,14 @@ export default function App() {
             <ShieldCheck size={24} />
           </div>
           <strong>
-            내 돈의 다음 일정을
+            Plan around
             <br />
-            먼저 생각합니다.
+            when you need it.
           </strong>
           <p>
-            필요한 돈은 확보하고,
+            Reserve what you need.
             <br />
-            남는 자금으로 계획하세요.
+            Put the remainder to work.
           </p>
           <a
             href="https://drive.google.com/file/d/1HXLhu1_vCoMD5aN3APEYEjDrh9oVCj7g/view"
@@ -488,10 +498,10 @@ export default function App() {
             Workspace <ChevronRight size={13} />{" "}
             <strong>
               {tab === "plan"
-                ? "자금 계획"
+                ? "Treasury plan"
                 : tab === "markets"
-                  ? "상품·데이터"
-                  : "포지션·회고"}
+                  ? "Products and data"
+                  : "Positions and review"}
             </strong>
           </div>
           <div className="header-actions">
@@ -507,7 +517,7 @@ export default function App() {
               <Wallet size={16} />
               {wallet
                 ? `${wallet.address.slice(0, 6)}…${wallet.address.slice(-4)}`
-                : "지갑 연결"}
+                : "Connect wallet"}
             </button>
           </div>
         </header>
@@ -517,27 +527,27 @@ export default function App() {
               <div className="eyebrow">YOUR CAPITAL, WITH A PLAN</div>
               <h1>
                 {tab === "plan"
-                  ? "돈이 필요할 때, 준비된 자금."
+                  ? "Your money, ready when you need it."
                   : tab === "markets"
-                    ? "수익률 뒤의 조건까지."
-                    : "계획부터 결과까지."}
+                    ? "Look beyond the headline yield."
+                    : "From your plan to its outcome."}
               </h1>
               <p>
                 {tab === "plan"
-                  ? "지출 일정과 회수 비용을 반영해, 남는 자금의 운용안을 비교하세요."
+                  ? "Compare plans for your surplus, accounting for spending dates and exit costs."
                   : tab === "markets"
-                    ? "데이터의 출처와 시각, 실제 회수 조건을 함께 확인하세요."
-                    : "원래의 가정을 기록하고, 실제 포지션과 거래 결과를 확인하세요."}
+                    ? "Check data sources, timestamps, and the conditions for withdrawing your funds."
+                    : "Save your original assumptions and review positions and transaction outcomes."}
               </p>
             </div>
-            <div className="mode-switch" aria-label="데이터 모드">
+            <div className="mode-switch" aria-label="Data mode">
               <button
                 className={mode === "demo" ? "selected" : ""}
                 onClick={() => setMode("demo")}
                 disabled={!!busy}
               >
                 <FlaskConical size={14} />
-                데모
+                Demo
               </button>
               <button
                 className={mode === "live" ? "selected" : ""}
@@ -545,7 +555,7 @@ export default function App() {
                 disabled={!!busy}
               >
                 <span className="live-dot" />
-                실시간
+                Live
               </button>
             </div>
           </div>
@@ -557,22 +567,22 @@ export default function App() {
                 <ShieldCheck size={16} />
               )}
               <strong>
-                {mode === "demo" ? "체험 데이터" : "실시간 데이터 모드"}
+                {mode === "demo" ? "Demo data" : "Live data mode"}
               </strong>
               {mode === "demo"
-                ? "예시 수익률·유동성으로 계산하며 거래는 실행되지 않습니다."
-                : "확인되지 않은 상품은 배분에서 제외합니다. 수익률은 변동됩니다."}
+                ? "Illustrative rates and liquidity. No transactions are executed."
+                : "Unverified products are excluded. Rates can change."}
             </span>
             {snapshot && (
               <small>
-                {new Date(snapshot.fetchedAt).toLocaleTimeString("ko-KR")} 기준
+                As of {new Date(snapshot.fetchedAt).toLocaleTimeString("en-US")}
               </small>
             )}
           </div>
           {error && (
             <div className="message error" role="alert">
               {error}
-              <button aria-label="오류 닫기" onClick={() => setError("")}>
+              <button aria-label="Dismiss error" onClick={() => setError("")}>
                 <X size={16} />
               </button>
             </div>
@@ -580,7 +590,10 @@ export default function App() {
           {notice && (
             <div className="message success" role="status">
               {notice}
-              <button aria-label="알림 닫기" onClick={() => setNotice("")}>
+              <button
+                aria-label="Dismiss notification"
+                onClick={() => setNotice("")}
+              >
                 <X size={16} />
               </button>
             </div>
@@ -591,10 +604,13 @@ export default function App() {
 
           {tab === "plan" && (
             <>
-              <section className="demo-quickstart" aria-label="빠른 데모 체험">
+              <section className="demo-quickstart" aria-label="Quick demo">
                 <div>
-                  <strong>1분 안에 핵심 흐름 체험</strong>
-                  <p>예시 선택 → 조건 확인하고 비교 → 지출 변화·가상 회고</p>
+                  <strong>Explore the workflow in one minute</strong>
+                  <p>
+                    Choose an example → Compare plans → Explore changes and
+                    review
+                  </p>
                 </div>
                 <div className="quickstart-actions">
                   <button
@@ -602,38 +618,38 @@ export default function App() {
                     disabled={!!busy}
                     onClick={() => loadExample(false)}
                   >
-                    지출 먼저 확보
+                    Reserve expenses first
                   </button>
                   <button
                     className="secondary"
                     disabled={!!busy}
                     onClick={() => loadExample(true)}
                   >
-                    단기 운용 비용 비교
+                    Short-term cost check
                   </button>
                 </div>
                 <small>
-                  버튼을 누르면 입력값이 데모 예시로 바뀝니다. 실제 자금이나 AI
-                  해석 결과가 아닙니다.
+                  These buttons load sample inputs. They are not real funds or
+                  AI-generated results.
                 </small>
               </section>
-              <section className="summary-grid" aria-label="자금 요약">
+              <section className="summary-grid" aria-label="Treasury overview">
                 <Metric
-                  label="총 계획 자금"
+                  label="Total planned capital"
                   value={money(intent.capitalUSDT, 0)}
-                  sub="USDT 기준 · 지갑 잔고와 별도"
+                  sub="In USDT · separate from wallet balance"
                   icon={<Wallet size={17} />}
                 />
                 <Metric
-                  label="지출·비상금 예약"
+                  label="Reserved for spending"
                   value={money(totalReserved, 0)}
-                  sub="투자하지 않고 확보할 금액"
+                  sub="Expenses and emergency funds held aside"
                   icon={<LockKeyhole size={17} />}
                 />
                 <Metric
-                  label="운용 검토 가능"
+                  label="Available to optimize"
                   value={money(available, 0)}
-                  sub="실행·회수 비용 차감 전"
+                  sub="Before entry and exit costs"
                   icon={<ArrowUpRight size={18} />}
                   accent
                 />
@@ -643,19 +659,20 @@ export default function App() {
                   <section className="card intent-card">
                     <div className="section-heading">
                       <div className="step-label">
-                        01 <span>운용 조건</span>
+                        01 <span>Your requirements</span>
                       </div>
                       <span className={`small-status ${aiReady ? "good" : ""}`}>
                         <span />
-                        {aiReady ? "AI 설정됨" : "수동 입력 가능"}
+                        {aiReady ? "AI configured" : "Manual input available"}
                       </span>
                     </div>
-                    <h2>어떻게 사용할 돈인가요?</h2>
+                    <h2>What are your funds for?</h2>
                     <p className="muted">
-                      금액, 지출 일정, 남는 돈의 운용 기간을 알려주세요.
+                      Enter your capital, spending dates, and investment
+                      horizon.
                     </p>
                     <label className="sr-only" htmlFor="intent-text">
-                      자연어 운용 조건
+                      Describe your requirements
                     </label>
                     <textarea
                       id="intent-text"
@@ -668,22 +685,27 @@ export default function App() {
                       maxLength={4000}
                     />
                     <div className="prompt-footer">
-                      <small>입력 내용은 AI 해석 요청 시 처리됩니다.</small>
+                      <small>
+                        Your text is sent only when you request AI
+                        interpretation.
+                      </small>
                       <button
                         className="text-button"
                         onClick={parseIntent}
                         disabled={!!busy}
                       >
                         <Sparkles size={15} />
-                        {busy === "조건 해석" ? "해석 중…" : "조건 해석"}
+                        {busy === "Interpret request"
+                          ? "Interpreting…"
+                          : "Interpret request"}
                       </button>
                     </div>
                     {parse && (
                       <div className="parse-note">
                         <strong>
                           {parse.source === "ai"
-                            ? "아래 해석 결과를 확인해 주세요."
-                            : "AI 미연결 · 직접 입력"}
+                            ? "Review the interpreted conditions below."
+                            : "AI not connected · manual input"}
                         </strong>
                         <p>{parse.message}</p>
                         {parse.questions.map((q, i) => (
@@ -692,9 +714,9 @@ export default function App() {
                       </div>
                     )}
                     <div className="form-grid">
-                      <Field label="총 계획 자금" suffix="USDT">
+                      <Field label="Total planned capital" suffix="USDT">
                         <input
-                          aria-label="총 계획 자금"
+                          aria-label="Total planned capital"
                           inputMode="decimal"
                           value={intent.capitalUSDT}
                           onChange={(e) =>
@@ -702,9 +724,9 @@ export default function App() {
                           }
                         />
                       </Field>
-                      <Field label="남는 돈 운용 기간" suffix="일">
+                      <Field label="Investment horizon" suffix="days">
                         <input
-                          aria-label="남는 돈 운용 기간"
+                          aria-label="Investment horizon"
                           type="number"
                           min="1"
                           max="3650"
@@ -714,9 +736,9 @@ export default function App() {
                           }
                         />
                       </Field>
-                      <Field label="비상금" suffix="USDT">
+                      <Field label="Emergency reserve" suffix="USDT">
                         <input
-                          aria-label="비상금"
+                          aria-label="Emergency reserve"
                           inputMode="decimal"
                           value={intent.emergencyUSDT}
                           onChange={(e) =>
@@ -724,9 +746,9 @@ export default function App() {
                           }
                         />
                       </Field>
-                      <Field label="USDD 노출 상한" suffix="%">
+                      <Field label="USDD exposure cap" suffix="%">
                         <input
-                          aria-label="USDD 노출 상한"
+                          aria-label="USDD exposure cap"
                           type="number"
                           min="0"
                           max="100"
@@ -738,7 +760,7 @@ export default function App() {
                       </Field>
                     </div>
                     <div className="expense-header">
-                      <strong>예정 지출</strong>
+                      <strong>Scheduled expenses</strong>
                       <button
                         className="text-button"
                         onClick={() =>
@@ -747,7 +769,7 @@ export default function App() {
                               ...intent.expenses,
                               {
                                 id: crypto.randomUUID(),
-                                label: "새 지출",
+                                label: "New expense",
                                 amountUSDT: "0",
                                 dueInDays: 7,
                               },
@@ -756,7 +778,7 @@ export default function App() {
                         }
                       >
                         <Plus size={14} />
-                        추가
+                        Add
                       </button>
                     </div>
                     <div className="expense-list">
@@ -765,7 +787,7 @@ export default function App() {
                           <div className="timeline-dot" />
                           <div className="expense-fields">
                             <input
-                              aria-label={`지출 ${index + 1} 이름`}
+                              aria-label={`Expense ${index + 1} name`}
                               value={expense.label}
                               maxLength={80}
                               onChange={(e) =>
@@ -780,7 +802,7 @@ export default function App() {
                             />
                             <div className="expense-meta">
                               <input
-                                aria-label={`지출 ${index + 1} 일수`}
+                                aria-label={`Expense ${index + 1} days`}
                                 type="number"
                                 min="0"
                                 value={expense.dueInDays}
@@ -797,12 +819,12 @@ export default function App() {
                                   })
                                 }
                               />
-                              <span>일 뒤</span>
+                              <span>days from now</span>
                             </div>
                           </div>
                           <div className="expense-amount">
                             <input
-                              aria-label={`지출 ${index + 1} 금액`}
+                              aria-label={`Expense ${index + 1} amount`}
                               value={expense.amountUSDT}
                               inputMode="decimal"
                               onChange={(e) =>
@@ -819,7 +841,7 @@ export default function App() {
                           </div>
                           <button
                             className="icon-button"
-                            aria-label={`지출 ${index + 1} 삭제`}
+                            aria-label={`Remove expense ${index + 1}`}
                             onClick={() =>
                               edit({
                                 expenses: intent.expenses.filter(
@@ -835,12 +857,15 @@ export default function App() {
                     </div>
                     <details className="advanced">
                       <summary>
-                        비용 가정·배분 제한 <CircleHelp size={13} />
+                        Costs and allocation limits <CircleHelp size={13} />
                       </summary>
                       <div className="form-grid">
-                        <Field label="USDT 왕복 비용 가정" suffix="USDT">
+                        <Field
+                          label="USDT round-trip cost assumption"
+                          suffix="USDT"
+                        >
                           <input
-                            aria-label="USDT 왕복 비용 가정"
+                            aria-label="USDT round-trip cost assumption"
                             value={costs.justlendUsdtRoundTripUSDT}
                             onChange={(e) => {
                               setCosts((c) => ({
@@ -851,9 +876,9 @@ export default function App() {
                             }}
                           />
                         </Field>
-                        <Field label="USDD 경로 비용 가정" suffix="USDT">
+                        <Field label="USDD route cost assumption" suffix="USDT">
                           <input
-                            aria-label="USDD 경로 비용 가정"
+                            aria-label="USDD route cost assumption"
                             value={costs.justlendUsddRoundTripUSDT}
                             onChange={(e) => {
                               setCosts((c) => ({
@@ -864,9 +889,9 @@ export default function App() {
                             }}
                           />
                         </Field>
-                        <Field label="JustLend 합산 상한" suffix="%">
+                        <Field label="Combined JustLend cap" suffix="%">
                           <input
-                            aria-label="JustLend 합산 상한"
+                            aria-label="Combined JustLend cap"
                             type="number"
                             value={intent.maxProtocolExposurePct}
                             onChange={(e) =>
@@ -889,28 +914,31 @@ export default function App() {
                             intentDirty();
                           }}
                         />
-                        추정 인센티브 포함 (토큰 가격·지급 조건 변동)
+                        Include estimated incentives (prices and reward terms
+                        may change)
                       </label>
                       <p className="small muted">
-                        비용은 계획용 사용자 가정입니다. 실제 지갑 비용 견적과
-                        다릅니다. 노출 상한은 총 계획 자금 대비 비율입니다.
+                        Costs are your planning assumptions, not wallet fee
+                        quotes. Exposure caps are percentages of total planned
+                        capital.
                       </p>
                     </details>
                     <div className="policy-line">
                       <ShieldCheck size={14} />
-                      레버리지 없음
+                      No leverage
                       <span />
-                      TRX 가격 노출 없음
+                      No TRX price exposure
                     </div>
                     {aiReview.required && (
                       <div className="ai-review-gate">
                         <p>
-                          AI가 확정하지 못한 조건이 있습니다. 남아 있는 예시값을
-                          본인 조건으로 바꾸거나 직접 확인해 주세요.
+                          Some conditions are still unconfirmed. Replace any
+                          remaining sample values or explicitly confirm them.
                         </p>
                         {aiReview.missingLabels.length > 0 && (
                           <p>
-                            미확인 항목: {aiReview.missingLabels.join(" · ")}
+                            Unconfirmed fields:{" "}
+                            {aiReview.missingLabels.join(" · ")}
                           </p>
                         )}
                         <label className="check-row">
@@ -921,8 +949,9 @@ export default function App() {
                               setAiConditionsReviewed(e.target.checked)
                             }
                           />
-                          질문과 현재 입력값을 검토했고, 변동 자산·레버리지 없이
-                          이 조건을 사용하겠습니다.
+                          I have reviewed the questions and current inputs, and
+                          confirm these conditions without volatile assets or
+                          leverage.
                         </label>
                       </div>
                     )}
@@ -932,14 +961,14 @@ export default function App() {
                         !!busy ||
                         !isIntentReviewComplete(parse, aiConditionsReviewed)
                       }
-                      onClick={() => run("계획 계산", () => calculate())}
+                      onClick={() => run("Calculating plan", () => calculate())}
                     >
-                      {busy === "계획 계산" ? (
+                      {busy === "Calculating plan" ? (
                         <Loader2 className="spin" size={17} />
                       ) : (
                         <CheckCircle2 size={17} />
                       )}
-                      조건 확인하고 비교
+                      Confirm and compare
                       <ArrowRight size={16} />
                     </button>
                   </section>
@@ -948,7 +977,7 @@ export default function App() {
                   <section className="card results-card">
                     <div className="section-heading">
                       <div className="step-label">
-                        02 <span>배분안 비교</span>
+                        02 <span>Compare plans</span>
                       </div>
                       <span className="subtle-label">NET YIELD FIRST</span>
                     </div>
@@ -960,24 +989,25 @@ export default function App() {
                           <div />
                           <ShieldCheck size={28} />
                         </div>
-                        <h2>먼저 일정을 지키는 계획.</h2>
+                        <h2>Your schedule comes first.</h2>
                         <p>
-                          조건을 확인하면 지갑 보유와 운용안을
+                          Confirm your conditions to compare holding cash and
+                          investing
                           <br />
-                          비용·유동성·순수익 기준으로 비교합니다.
+                          by cost, liquidity, and estimated net return.
                         </p>
                         <div className="empty-checks">
                           <span>
                             <Check size={14} />
-                            지출액 우선 확보
+                            Reserve expenses first
                           </span>
                           <span>
                             <Check size={14} />
-                            왕복 비용 반영
+                            Include entry and exit costs
                           </span>
                           <span>
                             <Check size={14} />
-                            제외 이유 공개
+                            Explain excluded options
                           </span>
                         </div>
                       </div>
@@ -985,23 +1015,23 @@ export default function App() {
                       <>
                         {!confirmed && (
                           <div className="inline-warning">
-                            조건이 변경되었습니다. 다시 계산해 주세요.
+                            Conditions changed. Please recalculate.
                           </div>
                         )}
                         {stressNote && (
                           <div className="stress-result">
                             <FlaskConical size={17} />
                             <div>
-                              <strong>가상 시나리오</strong>
+                              <strong>Simulated scenario</strong>
                               <p>{stressNote}</p>
                             </div>
                             <button
                               onClick={() =>
-                                run("계획 계산", () => calculate())
+                                run("Calculating plan", () => calculate())
                               }
                               className="text-button"
                             >
-                              원래 조건
+                              Original conditions
                             </button>
                           </div>
                         )}
@@ -1025,7 +1055,7 @@ export default function App() {
                                 <span className="radio-dot" />
                                 <strong>{p.name}</strong>
                                 {p.id === "yield" && (
-                                  <span className="tag">순수익 우선</span>
+                                  <span className="tag">Net return first</span>
                                 )}
                               </div>
                               <div className="option-yield">
@@ -1034,7 +1064,8 @@ export default function App() {
                                   {money(p.netYieldUSDT)} <small>USDT</small>
                                 </span>
                                 <small>
-                                  {result.intent.horizonDays}일 순수익 추정
+                                  {result.intent.horizonDays}-day estimated net
+                                  return
                                 </small>
                               </div>
                               <p>{p.objective}</p>
@@ -1044,15 +1075,15 @@ export default function App() {
                         {plan && (
                           <>
                             <div className="allocation-heading">
-                              <h3>자금 배분</h3>
+                              <h3>Capital allocation</h3>
                               <span>
-                                {result.intent.horizonDays}일 운용 · 금리 유지
-                                가정
+                                {result.intent.horizonDays} days · assumes
+                                unchanged rates
                               </span>
                             </div>
                             <div
                               className="allocation-bar"
-                              aria-label="배분 비중"
+                              aria-label="Allocation weights"
                             >
                               {allocationRows
                                 .filter((a) => Number(a.amountUSDT) > 0)
@@ -1089,8 +1120,8 @@ export default function App() {
                                       <strong>{labels[a.strategy]}</strong>
                                       <small>
                                         {a.strategy === "wallet"
-                                          ? `지출 예약 ${money(plan.reserveUSDT, 0)} + 추가 보유 ${money(plan.freeCashUSDT, 0)}`
-                                          : `기본 이자 ${money(a.grossYieldUSDT)} · 인센티브 ${money(a.incentiveYieldUSDT)} USDT`}
+                                          ? `Reserved ${money(plan.reserveUSDT, 0)} + Extra cash ${money(plan.freeCashUSDT, 0)}`
+                                          : `Base interest ${money(a.grossYieldUSDT)} · Incentives ${money(a.incentiveYieldUSDT)} USDT`}
                                       </small>
                                     </div>
                                     <strong className="numeric">
@@ -1102,22 +1133,22 @@ export default function App() {
                             </div>
                             <div className="yield-breakdown">
                               <div>
-                                <span>기본 이자</span>
+                                <span>Base interest</span>
                                 <strong>+{money(plan.grossYieldUSDT)}</strong>
                               </div>
                               <div>
-                                <span>추정 인센티브</span>
+                                <span>Estimated incentives</span>
                                 <strong>
                                   +{money(plan.incentiveYieldUSDT)}
                                 </strong>
                               </div>
                               <div>
-                                <span>왕복 비용 가정</span>
+                                <span>Round-trip cost assumption</span>
                                 <strong>−{money(plan.costUSDT)}</strong>
                               </div>
                               <div className="net">
                                 <span>
-                                  예상 순수익 <small>USDT</small>
+                                  Estimated net return <small>USDT</small>
                                 </span>
                                 <strong>
                                   {Number(plan.netYieldUSDT) > 0 ? "+" : ""}
@@ -1128,19 +1159,20 @@ export default function App() {
                             <div className="plan-footnotes">
                               <span>
                                 <Clock3 size={14} />
-                                손익분기{" "}
+                                Break-even{" "}
                                 {plan.breakevenDays === null
-                                  ? "해당 없음"
-                                  : `${plan.breakevenDays}일`}
+                                  ? "Not applicable"
+                                  : `${plan.breakevenDays} days`}
                               </span>
                               <span>
                                 <LockKeyhole size={14} />
-                                지출 예약액 투자 제외
+                                Reserved expenses stay uninvested
                               </span>
                             </div>
                             <details className="reason-details">
                               <summary>
-                                이 계획의 근거와 한계 <CircleHelp size={14} />
+                                Why this plan, and its limits{" "}
+                                <CircleHelp size={14} />
                               </summary>
                               {plan.allocations
                                 .flatMap((a) => a.reasons)
@@ -1153,8 +1185,9 @@ export default function App() {
                                 </p>
                               ))}
                               <p className="muted">
-                                현재 금리와 입력한 비용의 시나리오 추정입니다.
-                                미래 수익·회수 가능성을 보장하지 않습니다.
+                                A scenario estimate using current rates and your
+                                cost assumptions. Future returns and withdrawals
+                                are not guaranteed.
                               </p>
                             </details>
                             <div className="plan-actions">
@@ -1164,12 +1197,12 @@ export default function App() {
                                 onClick={savePlan}
                               >
                                 <CheckCircle2 size={15} />
-                                계획 저장
+                                Save plan
                               </button>
                               <button
                                 className="icon-button"
-                                title="계산 근거 JSON 내보내기"
-                                aria-label="계획 내보내기"
+                                title="Export calculation details as JSON"
+                                aria-label="Export plan"
                                 onClick={() =>
                                   exportJson(result, "treasury-plan.json")
                                 }
@@ -1186,18 +1219,19 @@ export default function App() {
                     <div className="section-heading">
                       <h3>
                         <FlaskConical size={17} />
-                        상황이 바뀐다면?
+                        What if things change?
                       </h3>
                       <span className="tag">SIMULATION</span>
                     </div>
                     <p className="muted">
-                      기존 예약으로 충당되면 배분을 유지합니다.
+                      Keep the allocation when existing reserves cover the
+                      change.
                     </p>
                     <div className="stress-buttons">
                       <button
                         disabled={!result || !confirmed || !!busy}
                         onClick={() =>
-                          run("시나리오 계산", () =>
+                          run("Calculating scenario", () =>
                             calculate(
                               {
                                 ...intent,
@@ -1206,18 +1240,18 @@ export default function App() {
                                   dueInDays: Math.min(e.dueInDays, 1),
                                 })),
                               },
-                              "기존 지출을 내일로 앞당겼습니다. 이미 예약한 돈으로 충당되면 투자 금액은 바뀌지 않습니다.",
+                              "An existing expense is now due tomorrow. Investment stays unchanged when reserved funds cover it.",
                             ),
                           )
                         }
                       >
-                        지출을 내일로
+                        Expense due tomorrow
                         <ArrowRight size={14} />
                       </button>
                       <button
                         disabled={!result || !confirmed || !!busy}
                         onClick={() =>
-                          run("시나리오 계산", () =>
+                          run("Calculating scenario", () =>
                             calculate(
                               {
                                 ...intent,
@@ -1225,39 +1259,39 @@ export default function App() {
                                   ...intent.expenses,
                                   {
                                     id: "stress-extra",
-                                    label: "가상 추가 지출",
+                                    label: "Simulated extra expense",
                                     amountUSDT: "3000",
                                     dueInDays: 1,
                                   },
                                 ],
                               },
-                              "예정에 없던 3,000 USDT 지출을 추가했습니다. 기존 지출과 비상금을 함께 지킬 수 있는지 계산합니다.",
+                              "Added an unplanned 3,000 USDT expense. Check whether all expenses and emergency funds remain covered.",
                             ),
                           )
                         }
                       >
-                        추가 지출 +3,000
+                        Extra expense +3,000
                         <ArrowRight size={14} />
                       </button>
                       <button
                         disabled={!result || !confirmed || !!busy}
                         onClick={() =>
-                          run("시나리오 계산", () =>
+                          run("Calculating scenario", () =>
                             calculate(
                               { ...intent, horizonDays: 7 },
-                              "남는 돈의 운용 기간을 7일로 줄였습니다. 왕복 비용을 회수하지 못하는 전략은 제외합니다.",
+                              "Reduced the investment horizon to 7 days. Strategies that cannot cover round-trip costs are excluded.",
                             ),
                           )
                         }
                       >
-                        운용 기간 7일
+                        7-day horizon
                         <ArrowRight size={14} />
                       </button>
                     </div>
                   </section>
                   {result && result.exclusions.length > 0 && (
                     <section className="card exclusions">
-                      <h3>검토했지만 제외한 후보</h3>
+                      <h3>Considered, then excluded</h3>
                       {result.exclusions.map((e, i) => (
                         <div key={i}>
                           <span className="excluded-icon">
@@ -1277,19 +1311,19 @@ export default function App() {
                 <section className="card execution-card">
                   <div className="section-heading">
                     <div className="step-label">
-                      03 <span>확인하고 실행</span>
+                      03 <span>Review and execute</span>
                     </div>
                     <span className="tag">USER SIGNED</span>
                   </div>
-                  <h2>선택한 계획에서 USDT 예치하기</h2>
+                  <h2>Supply USDT from your selected plan</h2>
                   <p className="muted">
-                    JustLend USDT 예치·회수를 지원합니다. USDD 경로는 비교
-                    전용입니다. 승인은 예치와 별도 거래이며 필요한 수량만
-                    요청합니다.
+                    Supports JustLend USDT supply and withdrawal. The USDD route
+                    is comparison only. Approval is a separate transaction for
+                    the exact required amount.
                   </p>
                   {mode === "demo" ? (
                     <div className="inline-warning">
-                      데모 모드에서는 거래를 준비하거나 서명할 수 없습니다.
+                      Transactions cannot be prepared or signed in demo mode.
                     </div>
                   ) : !wallet ? (
                     <button
@@ -1298,7 +1332,7 @@ export default function App() {
                       disabled={!!busy}
                     >
                       <Wallet size={16} />
-                      TronLink 연결
+                      Connect TronLink
                     </button>
                   ) : (
                     <div className="execution-actions">
@@ -1312,7 +1346,7 @@ export default function App() {
                         }
                         onClick={() => prepare("approve-usdt")}
                       >
-                        1. USDT 승인 준비
+                        1. Prepare USDT approval
                       </button>
                       <button
                         className="primary"
@@ -1324,7 +1358,7 @@ export default function App() {
                         }
                         onClick={() => prepare("supply-usdt")}
                       >
-                        2. 예치 견적 확인
+                        2. Review supply quote
                         <ArrowRight size={15} />
                       </button>
                       <button
@@ -1332,10 +1366,11 @@ export default function App() {
                         disabled={!!busy || !!history.error}
                         onClick={() => prepare("approve-usdt", true)}
                       >
-                        기존 USDT 승인 초기화
+                        Reset existing USDT approval
                       </button>
                       <small>
-                        지갑 USDT {money(wallet.usdt)} · TRX {money(wallet.trx)}
+                        Wallet USDT {money(wallet.usdt)} · TRX{" "}
+                        {money(wallet.trx)}
                       </small>
                     </div>
                   )}
@@ -1347,12 +1382,12 @@ export default function App() {
           {tab === "markets" && (
             <section className="card markets-card">
               <div className="section-heading">
-                <h2>연동 상품과 회수 조건</h2>
+                <h2>Products and exit conditions</h2>
                 <button
                   className="secondary"
                   disabled={!!busy}
                   onClick={() =>
-                    run("데이터 새로고침", async () =>
+                    run("Refreshing data", async () =>
                       setSnapshot(
                         await api<MarketSnapshot>(`/markets?mode=${mode}`),
                       ),
@@ -1360,18 +1395,18 @@ export default function App() {
                   }
                 >
                   <RefreshCw size={14} />
-                  새로고침
+                  Refresh
                 </button>
               </div>
               <div className="table-scroll">
                 <table>
                   <thead>
                     <tr>
-                      <th>상품</th>
-                      <th>기본 APY</th>
-                      <th>인센티브 APY</th>
-                      <th>가용 유동성</th>
-                      <th>상태</th>
+                      <th>Product</th>
+                      <th>Base APY</th>
+                      <th>Incentive APY</th>
+                      <th>Available liquidity</th>
+                      <th>Status</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1379,24 +1414,24 @@ export default function App() {
                       <tr key={m.id}>
                         <td>
                           <strong>{m.name}</strong>
-                          <small>{m.asset} 공급</small>
+                          <small>{m.asset} supply</small>
                         </td>
                         <td>{pct(m.baseApy)}</td>
                         <td>{pct(m.rewardApy)}</td>
                         <td>
                           {m.cashUSDT === null
-                            ? "확인 불가"
+                            ? "Unavailable"
                             : `${money(m.cashUSDT, 0)} ${m.asset}`}
                         </td>
                         <td>
                           <span className={`status-badge ${m.quality}`}>
                             {m.quality === "demo"
-                              ? "데모"
+                              ? "Demo"
                               : m.quality === "verified"
-                                ? "확인됨"
+                                ? "Verified"
                                 : m.quality === "stale"
-                                  ? "갱신 필요"
-                                  : "확인 불가"}
+                                  ? "Needs refresh"
+                                  : "Unavailable"}
                           </span>
                         </td>
                       </tr>
@@ -1404,15 +1439,13 @@ export default function App() {
                   </tbody>
                 </table>
               </div>
-              {!snapshot && (
-                <p className="muted">데이터를 불러오는 중입니다…</p>
-              )}
+              {!snapshot && <p className="muted">Loading market data…</p>}
               <div className="data-notes">
-                <h3>USDD 전환·회수 경로</h3>
+                <h3>USDD conversion and exit route</h3>
                 <p>
                   {snapshot?.psm.available
-                    ? "PSM 경로 데이터가 있습니다. 전환 수수료와 가용량을 배분에 반영합니다."
-                    : "USDD 전환·회수 경로가 확인되지 않아 실시간 배분에 포함하지 않습니다."}
+                    ? "PSM route data is available. Conversion fees and capacity are included in the allocation."
+                    : "The USDD entry and exit route is unverified and excluded from live allocations."}
                 </p>
                 {snapshot?.psm.warnings.map((w, i) => (
                   <p className="small muted" key={i}>
@@ -1428,15 +1461,15 @@ export default function App() {
                   </p>
                 ))}
                 <p className="small muted">
-                  현재 시장 현금은 미래 출금 보장이 아닙니다. 차입이 있는 계정은
-                  담보 조건을 추가 확인해야 합니다.
+                  Current market cash does not guarantee future withdrawals.
+                  Accounts with borrowing require additional collateral checks.
                 </p>
               </div>
               {mode === "live" && <PsmStatusPanel />}
               <div className="evidence-grid">
                 {snapshot?.markets.map((m) => (
                   <div key={m.id}>
-                    <h3>{m.name} · 근거</h3>
+                    <h3>{m.name} · Sources</h3>
                     {m.warnings.map((w, i) => (
                       <p className="small muted" key={i}>
                         {w}
@@ -1476,7 +1509,7 @@ export default function App() {
                   setResult(null);
                   setTab("plan");
                   setNotice(
-                    "남은 기간의 조건을 불러왔습니다. 실제 가용 자금과 이미 지급한 지출을 확인하고 다시 계산해 주세요.",
+                    "Loaded conditions for the remaining period. Review available funds and paid expenses, then recalculate.",
                   );
                 }}
               />
@@ -1486,8 +1519,8 @@ export default function App() {
             <>
               {(!result || !confirmed || mode !== "live" || !!stressNote) && (
                 <p className="inline-warning">
-                  계획 변화 관측은 실시간 모드에서 조건을 확인하고 기본 계획을
-                  계산한 뒤 사용할 수 있습니다.
+                  Plan monitoring is available after confirming conditions and
+                  calculating a base plan in live mode.
                 </p>
               )}
               {result && plan && (
@@ -1495,25 +1528,27 @@ export default function App() {
               )}
               <section className="card">
                 <div className="section-heading">
-                  <h2>현재 지갑·포지션</h2>
+                  <h2>Wallet and positions</h2>
                   <button
                     className="secondary"
                     disabled={!!busy}
                     onClick={() =>
-                      wallet ? run("포지션 조회", refreshWallet) : connect()
+                      wallet
+                        ? run("Loading positions", refreshWallet)
+                        : connect()
                     }
                   >
                     <RefreshCw size={14} />
-                    {wallet ? "새로고침" : "지갑 연결"}
+                    {wallet ? "Refresh" : "Connect wallet"}
                   </button>
                 </div>
                 {wallet ? (
                   <>
                     <p className="wallet-address">{wallet.address}</p>
                     <p className="small muted">
-                      최근 조회{" "}
-                      {new Date(wallet.fetchedAt).toLocaleString("ko-KR")} ·
-                      현재 스냅샷이며 실현 수익 통계가 아닙니다.
+                      Last checked{" "}
+                      {new Date(wallet.fetchedAt).toLocaleString("en-US")} · A
+                      current snapshot, not realized profit statistics.
                     </p>
                     <div className="balance-row">
                       <span>
@@ -1523,7 +1558,7 @@ export default function App() {
                         USDD{" "}
                         <strong>
                           {wallet.usdd === null
-                            ? "확인 불가"
+                            ? "Unavailable"
                             : money(wallet.usdd)}
                         </strong>
                       </span>
@@ -1537,11 +1572,13 @@ export default function App() {
                           <div>
                             <strong>
                               {p.marketId === "justlend-usdd"
-                                ? "JustLend USDD · 예치 자산"
+                                ? "JustLend USDD · supplied assets"
                                 : labels[p.marketId]}
                             </strong>
                             <small>
-                              {p.collateral ? "담보로 사용 중" : "담보 미사용"}
+                              {p.collateral
+                                ? "Used as collateral"
+                                : "Not used as collateral"}
                             </small>
                           </div>
                           <strong>
@@ -1551,7 +1588,7 @@ export default function App() {
                       ))
                     ) : (
                       <div className="empty-small">
-                        조회된 공급 포지션이 없습니다.
+                        No supply positions found.
                       </div>
                     )}
                     {wallet.warnings.map((w, i) => (
@@ -1560,10 +1597,10 @@ export default function App() {
                       </p>
                     ))}
                     <div className="withdraw-row">
-                      <Field label="USDT 회수 금액" suffix="USDT">
+                      <Field label="USDT withdrawal amount" suffix="USDT">
                         <input
                           value={txAmount}
-                          aria-label="USDT 회수 금액"
+                          aria-label="USDT withdrawal amount"
                           onChange={(e) => {
                             inputRevision.current++;
                             setPreview(null);
@@ -1583,7 +1620,7 @@ export default function App() {
                         onClick={() => prepare("withdraw-usdt")}
                       >
                         <ArrowDownLeft size={15} />
-                        회수 견적 확인
+                        Review withdrawal quote
                       </button>
                     </div>
                   </>
@@ -1591,15 +1628,18 @@ export default function App() {
                   <div className="empty-small">
                     <Wallet size={25} />
                     <p>
-                      지갑을 연결하면 실제 잔고와 JustLend 포지션을 조회합니다.
+                      Connect a wallet to view real balances and JustLend
+                      positions.
                     </p>
-                    <small>데모 자금과 실제 잔고는 별도로 표시합니다.</small>
+                    <small>
+                      Demo funds and real balances are shown separately.
+                    </small>
                   </div>
                 )}
               </section>
               <section className="card">
                 <div className="section-heading">
-                  <h2>저장한 계획</h2>
+                  <h2>Saved plans</h2>
                   <button
                     className="text-button"
                     onClick={() =>
@@ -1613,31 +1653,33 @@ export default function App() {
                     }
                   >
                     <Download size={15} />
-                    기록 내보내기
+                    Export history
                   </button>
                 </div>
                 <p className="small muted">
-                  이 브라우저에만 저장됩니다. 내보낸 파일에는 계획 금액과 연결한
-                  지갑의 거래 정보가 포함될 수 있습니다.
+                  Stored only in this browser. Exports may contain planned
+                  amounts and connected wallet transaction details.
                 </p>
                 {history.plans.length ? (
                   history.plans.map((p) => (
                     <div className="saved-plan" key={p.id}>
                       <div>
                         <span className={`status-badge ${p.mode}`}>
-                          {p.mode === "demo" ? "데모 계획" : "실시간 계획"}
+                          {p.mode === "demo" ? "Demo plan" : "Live plan"}
                         </span>
                         <h3>{p.name}</h3>
                         <small>
-                          {new Date(p.createdAt).toLocaleString("ko-KR")} ·{" "}
-                          {p.horizonDays}일
+                          {new Date(p.createdAt).toLocaleString("en-US")} ·{" "}
+                          {p.horizonDays} days
                         </small>
                         <p className="small muted">{p.assumptions}</p>
                       </div>
                       <div>
-                        <span>예상 순수익</span>
+                        <span>Estimated net return</span>
                         <strong>{money(p.expectedNetUSDT)} USDT</strong>
-                        <small>실제 순수익: 전체 입출금 원장 필요</small>
+                        <small>
+                          Actual net return requires a complete cash-flow ledger
+                        </small>
                         <button
                           className="text-button"
                           onClick={() => {
@@ -1652,17 +1694,17 @@ export default function App() {
                               setTab("plan");
                               setNotice(
                                 restored.requiresNewHorizon
-                                  ? "원래 운용 기간이 끝났습니다. 새 운용 기간과 이미 지급한 지출을 직접 확인한 뒤 다시 계산해 주세요."
-                                  : `원래 계획에서 ${restored.elapsedDays}일 경과한 조건을 불러왔습니다. 실제 가용 자금과 지급 완료 지출을 확인하고 다시 계산해 주세요.`,
+                                  ? "The original horizon has ended. Set a new horizon, review paid expenses, and recalculate."
+                                  : `Loaded conditions ${restored.elapsedDays} days after the original plan. Review available funds and paid expenses, then recalculate.`,
                               );
                             } catch {
                               setError(
-                                "저장된 계획 형식을 확인하지 못했습니다.",
+                                "The saved plan format could not be verified.",
                               );
                             }
                           }}
                         >
-                          조건 불러오기 <ArrowRight size={13} />
+                          Restore conditions <ArrowRight size={13} />
                         </button>
                         <button
                           className="text-button"
@@ -1673,22 +1715,24 @@ export default function App() {
                             )
                           }
                         >
-                          가정 확인 <Download size={13} />
+                          View assumptions <Download size={13} />
                         </button>
                       </div>
                     </div>
                   ))
                 ) : (
                   <div className="empty-small">
-                    배분안에서 ‘계획 저장’을 누르면 원래의 계산 가정을
-                    보관합니다.
+                    Select Save plan in the allocation panel to preserve the
+                    original assumptions.
                   </div>
                 )}
               </section>
               <section className="card">
                 <div className="section-heading">
-                  <h2>거래 기록</h2>
-                  <span className="small muted">서명 이후 거래만 기록</span>
+                  <h2>Transaction history</h2>
+                  <span className="small muted">
+                    Only signed transactions are recorded
+                  </span>
                 </div>
                 {history.transactions.length ? (
                   history.transactions.map((t) => (
@@ -1697,9 +1741,9 @@ export default function App() {
                         <strong>
                           {
                             {
-                              "approve-usdt": "USDT 사용 승인",
-                              "supply-usdt": "JustLend 예치",
-                              "withdraw-usdt": "JustLend 회수",
+                              "approve-usdt": "USDT spending approval",
+                              "supply-usdt": "JustLend supply",
+                              "withdraw-usdt": "JustLend withdrawal",
                             }[t.action]
                           }{" "}
                           · {money(t.amount)} USDT
@@ -1714,11 +1758,11 @@ export default function App() {
                         </a>
                         <small>
                           {t.actualFeeTRX !== undefined
-                            ? `실제 네트워크 비용 ${money(t.actualFeeTRX, 6)} TRX`
-                            : "네트워크 비용 확인 대기"}
+                            ? `Actual network fee ${money(t.actualFeeTRX, 6)} TRX`
+                            : "Network fee pending"}
                         </small>
                         {t.planId && (
-                          <small>근거 계획 {t.planId.slice(0, 8)}</small>
+                          <small>Linked plan {t.planId.slice(0, 8)}</small>
                         )}
                         {t.error && (
                           <small className="negative">{t.error}</small>
@@ -1728,10 +1772,10 @@ export default function App() {
                         <span className={`status-badge ${t.status}`}>
                           {
                             {
-                              pending: "처리 중",
-                              confirmed: "확인됨",
-                              failed: "실패",
-                              unknown: "확인 필요",
+                              pending: "Pending",
+                              confirmed: "Verified",
+                              failed: "Failed",
+                              unknown: "Needs review",
                             }[t.status]
                           }
                         </span>
@@ -1740,7 +1784,7 @@ export default function App() {
                           disabled={!!busy}
                           onClick={() => refreshTransaction(t)}
                         >
-                          상태 확인
+                          Check status
                           <RefreshCw size={13} />
                         </button>
                       </div>
@@ -1748,7 +1792,7 @@ export default function App() {
                   ))
                 ) : (
                   <div className="empty-small">
-                    아직 제출한 거래가 없습니다.
+                    No transactions submitted yet.
                   </div>
                 )}
               </section>
@@ -1759,14 +1803,14 @@ export default function App() {
               TRON TREASURY COPILOT <span className="footer-dot">·</span> GWDC
               2026
             </span>
-            <span>계산 가능한 근거. 사용자가 결정하는 실행.</span>
+            <span>Transparent calculations. Execution under your control.</span>
           </footer>
         </main>
       </div>
       {busy && (
         <div className="working-indicator" role="status">
           <Loader2 size={15} className="spin" />
-          {busy} 중
+          {busy}…
         </div>
       )}
       {preview && (
@@ -1780,39 +1824,40 @@ export default function App() {
             <button
               className="modal-close icon-button"
               disabled={!!busy}
-              aria-label="거래 미리보기 닫기"
+              aria-label="Close transaction preview"
               onClick={() => setPreview(null)}
             >
               <X size={20} />
             </button>
             <div className="eyebrow">REVIEW BEFORE YOU SIGN</div>
-            <h2 id="transaction-title">거래 내용을 확인하세요</h2>
+            <h2 id="transaction-title">Review your transaction</h2>
             <p>TRON Mainnet · {preview.functionSelector}</p>
             <dl>
-              <dt>금액</dt>
+              <dt>Amount</dt>
               <dd>{money(preview.amount, 6)} USDT</dd>
-              <dt>내 지갑</dt>
+              <dt>My wallet</dt>
               <dd>{preview.owner}</dd>
-              <dt>대상 계약</dt>
+              <dt>Target contract</dt>
               <dd>{preview.to}</dd>
               {preview.spender && (
                 <>
-                  <dt>승인 대상</dt>
+                  <dt>Approval spender</dt>
                   <dd>{preview.spender}</dd>
                 </>
               )}
-              <dt>예상 네트워크 비용</dt>
+              <dt>Estimated network fee</dt>
               <dd>
                 {preview.estimatedFeeTRX === null
-                  ? "확인 불가"
+                  ? "Unavailable"
                   : `${preview.estimatedFeeTRX} TRX`}
               </dd>
-              <dt>Energy 비용 상한</dt>
+              <dt>Energy fee cap</dt>
               <dd>
-                {money(preview.feeLimitSun / 1e6, 6)} TRX (예상 비용과 다름)
+                {money(preview.feeLimitSun / 1e6, 6)} TRX (Not the estimated
+                fee)
               </dd>
-              <dt>견적 유효 시각</dt>
-              <dd>{new Date(preview.expiresAt).toLocaleTimeString("ko-KR")}</dd>
+              <dt>Quote expires at</dt>
+              <dd>{new Date(preview.expiresAt).toLocaleTimeString("en-US")}</dd>
             </dl>
             {preview.warnings.map((w, i) => (
               <p className="small muted" key={i}>
@@ -1826,7 +1871,7 @@ export default function App() {
                 checked={previewConsent}
                 onChange={(e) => setPreviewConsent(e.target.checked)}
               />
-              금액·계약·비용·승인 범위를 확인했습니다.
+              I have reviewed the amount, contract, fees, and approval scope.
             </label>
             <button
               className="primary full"
@@ -1834,11 +1879,11 @@ export default function App() {
               onClick={execute}
             >
               <Wallet size={17} />
-              TronLink에서 서명하고 제출
+              Sign and submit in TronLink
             </button>
             <p className="small muted">
-              서명 이후 결과가 불명확하면 거래 ID로 확인합니다. 자동 재전송하지
-              않습니다.
+              If the result is unclear after signing, check the transaction ID.
+              No automatic resubmission.
             </p>
           </section>
         </div>

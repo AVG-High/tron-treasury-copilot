@@ -10,7 +10,11 @@ export function PsmStatusPanel() {
   const request = useRef<AbortController | null>(null);
   useEffect(() => () => request.current?.abort(), []);
   const displayToggle = (value: boolean | null) =>
-    value === null ? "확인 불가" : value ? "컨트랙트 활성" : "컨트랙트 중지";
+    value === null
+      ? "Unavailable"
+      : value
+        ? "Contract enabled"
+        : "Contract paused";
   async function refresh() {
     if (busy) return;
     const controller = new AbortController();
@@ -27,24 +31,29 @@ export function PsmStatusPanel() {
       if (!controller.signal.aborted) setStatus(data);
     } catch (e) {
       if (!controller.signal.aborted)
-        setError(e instanceof Error ? e.message : "전환 상태 조회 실패");
+        setError(
+          e instanceof Error ? e.message : "Conversion status request failed",
+        );
     } finally {
       if (!controller.signal.aborted) setBusy(false);
     }
   }
   return (
-    <section className="psm-status" aria-label="USDD 온체인 전환 관측">
+    <section
+      className="psm-status"
+      aria-label="USDD on-chain conversion status"
+    >
       <div className="section-heading">
-        <h3>USDD 온체인 전환 관측</h3>
+        <h3>USDD on-chain conversion status</h3>
         <button className="secondary" disabled={busy} onClick={refresh}>
           <RefreshCw size={14} />
-          {busy ? "컨트랙트 조회 중…" : "USDD 전환 상태 조회"}
+          {busy ? "Reading contracts…" : "Check USDD conversion status"}
         </button>
       </div>
       <p className="small muted">
-        공식 TRON RPC에서 토큰·Join·PSM 관계, 양방향 토글과 수수료를 확인합니다.
-        현재 교환 가능액과 전체 거래 경로는 별도 검증이 필요하며 이 화면은
-        거래를 실행하지 않습니다.
+        Reads token, Join, and PSM relationships, both direction flags, and fees
+        from the official TRON RPC. Current capacity and the complete route need
+        separate verification. This panel does not execute transactions.
       </p>
       {error && (
         <p className="inline-warning" role="status">
@@ -54,19 +63,19 @@ export function PsmStatusPanel() {
       {status && (
         <>
           <p className="small muted">
-            조회 {new Date(status.fetchedAt).toLocaleString("ko-KR")} ·{" "}
+            Checked {new Date(status.fetchedAt).toLocaleString("en-US")} ·{" "}
             {status.quality === "verified"
-              ? "조회 항목 확인됨"
-              : "조회 항목 확인 불가"}
+              ? "Read fields verified"
+              : "Read fields unavailable"}
           </p>
           <div className="psm-grid">
             <div>
               <small>USDT → USDD</small>
               <strong>{displayToggle(status.sellEnabled)}</strong>
               <small>
-                전환 수수료{" "}
+                Conversion fee{" "}
                 {status.toUSDDFeePct === null
-                  ? "확인 불가"
+                  ? "Unavailable"
                   : `${status.toUSDDFeePct}%`}
               </small>
             </div>
@@ -74,18 +83,19 @@ export function PsmStatusPanel() {
               <small>USDD → USDT</small>
               <strong>{displayToggle(status.buyEnabled)}</strong>
               <small>
-                전환 수수료{" "}
+                Conversion fee{" "}
                 {status.fromUSDDFeePct === null
-                  ? "확인 불가"
+                  ? "Unavailable"
                   : `${status.fromUSDDFeePct}%`}
               </small>
             </div>
           </div>
           <p className="inline-warning">
-            현재 교환 가능액: 산출 미지원 · 앱의 USDD 전환 실행: 미지원
+            Current conversion capacity: not calculated · USDD execution: not
+            supported
           </p>
           <details>
-            <summary className="small">검증 대상 전체 주소</summary>
+            <summary className="small">Full addresses checked</summary>
             <p className="wallet-address">USDD {status.usddAddress}</p>
             <p className="wallet-address">PSM {status.psmAddress}</p>
             <p className="wallet-address">USDT Join {status.joinAddress}</p>

@@ -1,14 +1,14 @@
 import type { ParseResult, TreasuryIntent } from "../domain/types.js";
 
 const intentFields: Array<[keyof TreasuryIntent, string]> = [
-  ["capitalUSDT", "총 계획 자금"],
-  ["horizonDays", "남는 돈 운용 기간"],
-  ["emergencyUSDT", "비상금"],
-  ["expenses", "예정 지출"],
-  ["maxUSDDExposurePct", "USDD 노출 상한"],
-  ["maxProtocolExposurePct", "JustLend 노출 상한"],
-  ["allowVolatile", "변동 자산 투자 제외"],
-  ["allowLeverage", "차입·레버리지 제외"],
+  ["capitalUSDT", "Total planned capital"],
+  ["horizonDays", "Investment horizon"],
+  ["emergencyUSDT", "Emergency reserve"],
+  ["expenses", "Scheduled expenses"],
+  ["maxUSDDExposurePct", "USDD exposure cap"],
+  ["maxProtocolExposurePct", "JustLend exposure cap"],
+  ["allowVolatile", "Exclude volatile assets"],
+  ["allowLeverage", "Exclude borrowing and leverage"],
 ];
 
 /**
